@@ -1,0 +1,2 @@
+print "print \"Hello World\""; #comment
+print "Next line";
