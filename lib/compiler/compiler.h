@@ -1,7 +1,8 @@
 #ifndef COMPILER_H
 #define COMPILER_H
 #include "vm.h"
+#include "common.h"
 
-int compile(const char*, Chunk*);
+bool compile(const char*, Chunk*);
 
 #endif

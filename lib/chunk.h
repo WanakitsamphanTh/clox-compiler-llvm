@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include "value.h"
+#include "common.h"
 
 typedef unsigned char uint8_t;
 

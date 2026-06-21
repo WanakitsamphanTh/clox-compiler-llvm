@@ -4,7 +4,7 @@
 #include "vm.h"
 #include <stdio.h>
 
-int compile(const char* source, Chunk* chunk){
+bool compile(const char* source, Chunk* chunk){
     int line = -1;
     char lexeme[128];
     int i;
@@ -24,5 +24,5 @@ int compile(const char* source, Chunk* chunk){
         if(token.type == TOKEN_EOF) break;
     }
 
-    return 1;   
+    return true;   
 }
