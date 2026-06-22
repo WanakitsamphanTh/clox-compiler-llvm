@@ -2,6 +2,7 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <string.h>
+#include <stdlib.h>
 
 Scanner scanner;
 
@@ -14,10 +15,21 @@ void initScanner(const char* source){
 Token scanToken(){
     Token token;
     int length = 1;
-    token.start = scanner.current;
-    token.line = scanner.line;
-    char c = scannerAdvance();
+    char c;
 
+    while(1){
+        skipSpace();
+
+        if(scannerMatchAndAdvance("#"))
+            omitComment();
+        else
+            break;
+    }
+
+    scanner.start = scanner.current;
+    token.start = scanner.start;
+    token.line = scanner.line;
+    c = scannerAdvance();
     switch(c){
         case '(':
             token.type = TOKEN_LEFT_PAREN; break;
@@ -42,7 +54,7 @@ Token scanToken(){
         case '/':
             token.type = TOKEN_SLASH; break;
         case '!':
-            if(scannerPeekNext() == '=') {
+            if(scannerMatchAndAdvance("=")) {
                 token.type = TOKEN_BANG_EQUAL;
                 length++;
             } else {
@@ -50,7 +62,7 @@ Token scanToken(){
             }
             break;
         case '=':
-            if(scannerPeekNext() == '=') {
+            if(scannerMatchAndAdvance("=")) {
                 token.type = TOKEN_EQUAL_EQUAL;
                 length++;
             } else {
@@ -58,7 +70,7 @@ Token scanToken(){
             }
             break;
         case '>':
-            if(scannerPeekNext() == '=') {
+            if(scannerMatchAndAdvance("=")) {
                 token.type = TOKEN_GREATER_EQUAL;
                 length++;
             } else {
@@ -66,7 +78,7 @@ Token scanToken(){
             }
             break;
         case '<':
-            if(scannerPeekNext() == '=') {
+            if(scannerMatchAndAdvance("=")) {
                 token.type = TOKEN_LESS_EQUAL;
                 length++;
             } else {
@@ -91,17 +103,25 @@ Token scanToken(){
 }
 
 void skipSpace(){
-    while(scannerPeek() == ' ' || scannerPeek() == '\t'){
-        scanner.current++;
-    }
-    while(scannerPeek() == '\n') {
-        scanner.current++;
-        scanner.line++;
+    while(1){
+        switch(scannerPeek()){
+            case '\n':
+                scanner.line++;
+            case ' ':
+            case '\t':
+            case '\r':
+                scannerAdvance();
+                break;
+            default:
+                return;
+        }
     }
 }
 
 void omitComment(){
-    if(scannerPeek() == '#') while(scannerAdvance() != '\n');
+    char c;
+    while (scannerPeek() != '\n' && scannerPeek() != '\0')
+        scannerAdvance();
 }
 
 char scannerPeek(){
@@ -109,21 +129,21 @@ char scannerPeek(){
 }
 
 char scannerPeekNext(){
-    return *(scanner.start + 1);
+    return *(scanner.current + 1);
 }
 
 char scannerAdvance(){
+    if(*scanner.current == '\0')
+        return '\0';
     return *(scanner.current++);
 }
 
 int scannerMatchAndAdvance(const char* chars){
-    char c = scannerPeek();
-    while(*chars != '\0'){
-        if(c == *chars){
+    while(*chars){
+        if(scannerPeek() == *chars++){
             scannerAdvance();
             return 1;
         }
-        chars++;
     }
     return 0;
 }
@@ -152,7 +172,8 @@ TokenType scanWord(int* length){
     }
 
     for(i = 0; i < *length; i++)
-        word[i] = *(scanner.current + i);
+        word[i] = scanner.start[i];
+    word[i] = '\0';
     
     MATCH(word, "and", TOKEN_AND);
     MATCH(word, "class", TOKEN_CLASS);
@@ -185,8 +206,10 @@ static TokenType scanString(int* length){
         if(c == '\"') break;
         if(c == '\n') scanner.line++;
         if(c == '\\'){
-            scannerAdvance();
-            (*length)++;
+            if(c != '\0'){
+                scannerAdvance();
+                (*length)++;
+            }
         }
     }
     return TOKEN_STRING;

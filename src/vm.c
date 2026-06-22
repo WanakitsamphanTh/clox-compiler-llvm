@@ -22,8 +22,10 @@ InterpretResult vmInterpret(Chunk* chunk) {
 }
 
 #define BINARY_OP(op) do { \
-    Value b = vmPop(); Value a = vmPop(); \
-    ; vmPush(a op b); \
+    Value b = vmPop(); \
+    Value a = vmPop(); \
+    a.val.num = a.val.num op b.val.num; \
+    vmPush(a); \
     } while(0)
 
 InterpretResult runVM(){
@@ -39,11 +41,12 @@ InterpretResult runVM(){
                 break;
             case OP_RETURN:
                 value = vmPop();
-                printf("%.8f\n", value);
+                printf("%.8f\n", value.val.num);
                 return INTERPRET_OK;
             case OP_NEGATE:
                 value = vmPop();
-                vmPush(-value); 
+                value.val.num = - value.val.num;
+                vmPush(value); 
                 break;
             case OP_ADD:
                 BINARY_OP(+); break;

@@ -2,8 +2,9 @@
 #define VALUE_H
 
 #include "common.h"
+#include "compiler/expression.h"
 
-typedef double Value;
+//typedef double Value;
 
 typedef struct {
     int count;
