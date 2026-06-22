@@ -57,8 +57,36 @@ int disassembleInstruction(const Chunk* chunk, int offset){
             return simpleInstruction("OP_MULT", offset);
         case OP_DIV:
             return simpleInstruction("OP_DIV", offset);
+
+        case OP_NIL:
+            return simpleInstruction("OP_NIL", offset);
+        case OP_TRUE:
+            return simpleInstruction("OP_TRUE", offset);
+        case OP_FALSE:
+            return simpleInstruction("OP_FALSE", offset);
+           
+        case OP_AND: 
+            return simpleInstruction("OP_AND", offset);
+        case OP_OR:
+            return simpleInstruction("OP_OR", offset);
+        case OP_CMPL:
+            return simpleInstruction("OP_CMPL", offset);
+        case OP_LESS:
+            return simpleInstruction("OP_LESS", offset);
+        case OP_LESS_EQ:
+            return simpleInstruction("OP_LESS_EQ", offset);
+        case OP_GREATER:
+            return simpleInstruction("OP_GREATER", offset);
+        case OP_GREATER_EQ:
+            return simpleInstruction("OP_GREATER_EQ", offset);
+        case OP_EQ:
+            return simpleInstruction("OP_EQ", offset);
+
         case OP_CONST:
             return constantInstruction("OP_CONST", chunk, offset);
+
+        case OP_PRINT:
+            return simpleInstruction("OP_PRINT", offset);
         default:
             fprintf(stderr, "unknown opcode %d\n", op);
             return offset + 1;
@@ -77,8 +105,11 @@ int simpleInstruction(const char* instruction, int offset) {
 
 int constantInstruction(const char* instruction, const Chunk* chunk, int offset) {
     uint8_t constant = chunk->code[offset + 1];
+    Value value = chunk->constants.values[constant];
+    char buffer[256];
+    valueToString(value, buffer);
     printf("%-16s %4d\t", instruction, constant);
-    printf("\'%.8f\'", chunk->constants.values[constant]);
+    printf("\'%s\'", buffer);
     printf("\n");
     return offset + 2;
 }

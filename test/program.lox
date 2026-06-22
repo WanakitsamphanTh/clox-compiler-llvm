@@ -1,2 +1,2 @@
-print "print \"Hello World\""; #comment
-print "Next line";
+print ((1 + 2) * 4 + 9 != 21) or true;
+print 1 + 1 + 1/2 + 1/6 + 1/24 + 1/120; 

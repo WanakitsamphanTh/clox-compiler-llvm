@@ -3,24 +3,10 @@
 
 #include "compiler/token.h"
 #include "common.h"
+#include "value.h"
 
 struct _expression;
 typedef struct _expression Expr;
-
-typedef enum {
-    NUMBER_VALUE,
-    STR_VALUE,
-    BOOL_VALUE
-} ValueType;
-
-typedef struct {
-    ValueType type;
-    union {
-        double num;
-        bool b;
-        const char* str;
-    } val;
-} Value;
 
 typedef enum {
     LITERAL_EXPR,

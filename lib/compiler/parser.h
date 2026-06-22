@@ -46,12 +46,10 @@ static Expr* parseEquality();
 static Expr* parseComparison();
 static Expr* parseTerm();
 static Expr* parseFactor();
+static Expr* parseUnary();
 static Expr* parsePrimary();
 static Expr* parseGroup();
 static Expr* parseLiteral();
 static Expr* parseVarExpr();
-
-
-#define match(...) mathAny(__VA_ARGS__,0)
 
 #endif

@@ -69,9 +69,8 @@ struct _Stmt {
 };
 
 
-Stmt* newStatement(StmtType);
-void freeStatement(Stmt*);
-void freeStatementList(Stmt**, int);
+Stmt* newStmt(StmtType);
+void freeStmt(Stmt*);
 
 StmtList newStmtList();
 void appendStmtList(StmtList*, Stmt*);

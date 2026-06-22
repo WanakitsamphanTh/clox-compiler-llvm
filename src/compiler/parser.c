@@ -1,13 +1,17 @@
 #include "compiler/parser.h"
+#include "compiler/statement.h"
+#include "compiler/expression.h"
 #include <stdarg.h>
 #include <stdio.h>
+
+#define match(...) matchAny(__VA_ARGS__,TOKEN_NONE)
 
 #define PARSER_ERROR(...) do {snprintf(parser.err_msg, sizeof(parser.err_msg), __VA_ARGS__); parser.has_error = true;} while(false)
 #define END_PARSING_IF_ERROR() if(parser.has_error) goto end_parsing
 #define RETURN_STMT(stmt) \
                         do { \
                             if(parser.has_error) { \
-                                freeStatement(stmt); \
+                                freeStmt(stmt); \
                                 return NULL; \
                             } \
                             return stmt; \
@@ -71,9 +75,9 @@ bool check(TokenType t){
 static bool matchAny(TokenType type, ...){
     int i;
     va_list vargs;
-    TokenType type;
     bool matched = false;
 
+    
     va_start(vargs, type);
     do{
         if(check(type)) {
@@ -81,8 +85,8 @@ static bool matchAny(TokenType type, ...){
             matched = true;
             break;
         }
-        type = va_arg(vargs, TokenType);
-    } while(type);
+        type = (TokenType) va_arg(vargs, TokenType);
+    } while(type != TOKEN_NONE);
 
     va_end(vargs);
     return matched;
@@ -120,7 +124,7 @@ Stmt* parseDeclaration(){
 Stmt* parseVarDecl(){
     Token id;
     Expr* init_expr;
-    Stmt* stmt = newStatement(VAR_DECL);
+    Stmt* stmt = newStmt(VAR_DECL);
 
     id = consume(TOKEN_IDENTIFIER, "expect variable name");
     END_PARSING_IF_ERROR();
@@ -134,6 +138,7 @@ Stmt* parseVarDecl(){
     }
 
     consume(TOKEN_SEMICOLON, "expect semicolon after variable declaration");
+    END_PARSING_IF_ERROR();
 
     end_parsing:
         RETURN_STMT(stmt);
@@ -151,7 +156,7 @@ Stmt* parseStmt(){
 }
 
 Stmt* parsePrint(){
-    Stmt* stmt = newStatement(PRINT_STMT);
+    Stmt* stmt = newStmt(PRINT_STMT);
 
     stmt->body._print->expr = parseExpr();
     END_PARSING_IF_ERROR();
@@ -163,7 +168,7 @@ Stmt* parsePrint(){
 
 }
 Stmt* parseBlock(){ 
-    Stmt* stmt = newStatement(BLOCK_STMT);
+    Stmt* stmt = newStmt(BLOCK_STMT);
     Stmt* sub_stmt;
     while(!check(TOKEN_RIGHT_BRACE) && !isAtEnd()){
         sub_stmt = parseDeclaration();
@@ -179,7 +184,7 @@ Stmt* parseBlock(){
 }
 
 Stmt* parseIf(){
-    Stmt *stmt = newStatement(IF_STMT);
+    Stmt *stmt = newStmt(IF_STMT);
     consume(TOKEN_LEFT_PAREN, "expect '('");
     END_PARSING_IF_ERROR();
 
@@ -202,7 +207,7 @@ Stmt* parseIf(){
 }
 
 Stmt* parseWhile(){
-    Stmt *stmt = newStatement(WHILE_STMT);
+    Stmt *stmt = newStmt(WHILE_STMT);
 
     consume(TOKEN_LEFT_PAREN, "expect '('");
     END_PARSING_IF_ERROR();
@@ -221,12 +226,15 @@ Stmt* parseWhile(){
 }
 
 Stmt* parseFor(){ // to be implemented
-    Stmt* stmt = newStatement(BLOCK_STMT);
+    Stmt* stmt = newStmt(BLOCK_STMT);
     Stmt* init = NULL;
     Expr* cond = NULL;
     Expr* increment = NULL;
     Stmt* body = NULL;
     Stmt* loop = NULL;
+
+    consume(TOKEN_LEFT_PAREN, "expect '(' after for");
+    END_PARSING_IF_ERROR();
 
     if(match(TOKEN_SEMICOLON));
     else if(match(TOKEN_VAR)){
@@ -252,13 +260,13 @@ Stmt* parseFor(){ // to be implemented
     body = parseStmt();
     END_PARSING_IF_ERROR();
 
-    appendStmtList(&stmt->body._block->stmt_list, init);
-    loop = newStatement(WHILE_STMT);
-    loop->body._while->condition = cond;
-    loop->body._while->body = body;
-    loop->body._while->increment = newStatement(EXPR_STMT);
-    loop->body._while->increment->body._expr->expr = increment;
-    appendStmtList(&stmt->body._block->stmt_list, loop);
+    appendStmtList(&stmt->body._block->stmt_list, init); init = NULL;
+    loop = newStmt(WHILE_STMT);
+    loop->body._while->condition = cond; cond = NULL;
+    loop->body._while->body = body; body = NULL;
+    loop->body._while->increment = newStmt(EXPR_STMT);
+    loop->body._while->increment->body._expr->expr = increment; increment = NULL;
+    appendStmtList(&stmt->body._block->stmt_list, loop); loop = NULL;
     
     end_parsing:
         if(parser.has_error){
@@ -267,27 +275,28 @@ Stmt* parseFor(){ // to be implemented
             freeExpr(increment);
             freeStmt(body);
             freeStmt(stmt);
+            return NULL;
         }
         return stmt;
 }
 
 Stmt* parseSkip(){
-    Stmt *stmt = newStatement(SKIP_STMT);
+    Stmt *stmt = newStmt(SKIP_STMT);
     consume(TOKEN_SEMICOLON, "expect ';' after skip");
     RETURN_STMT(stmt);
 }
 
 Stmt* parseBreak(){
-    Stmt *stmt = newStatement(BREAK_STMT);
+    Stmt *stmt = newStmt(BREAK_STMT);
     consume(TOKEN_SEMICOLON, "expect ';' after break");
     RETURN_STMT(stmt);
 }
 
 Stmt* parseExprStmt(){
-    Stmt *stmt = newStatement(EXPR_STMT);
+    Stmt *stmt = newStmt(EXPR_STMT);
     stmt->body._expr->expr = parseExpr();
     if(parser.has_error) {
-        freeStatement(stmt);
+        freeStmt(stmt);
         return NULL;
     }
     consume(TOKEN_SEMICOLON, "expect ';' after expression");
@@ -317,6 +326,9 @@ Expr* parseAssignment(){
             expr = newExpr(ASSIGNMENT_EXPR);
             expr->body._assign->var = left;
             expr->body._assign->val = right;
+        } else {
+            freeExpr(right);
+            PARSER_ERROR("Invalid assignment target");
         }
     }
 
@@ -335,7 +347,7 @@ Expr* parseOr(){
     while(match(TOKEN_OR)){
         left = expr;
         op = previous();
-        right = parseOr();
+        right = parseAnd();
         END_PARSING_IF_ERROR();
         
         expr = newExpr(BINARY_EXPR);
@@ -359,7 +371,7 @@ Expr* parseAnd(){
     while(match(TOKEN_AND)){
         left = expr;
         op = previous();
-        right = parseAnd();
+        right = parseEquality();
         END_PARSING_IF_ERROR();
         
         expr = newExpr(BINARY_EXPR);
@@ -377,10 +389,34 @@ Expr* parseEquality(){
     Expr *right;
     Token op;
 
+    expr = parseComparison();
+    END_PARSING_IF_ERROR();
+
+    while(match(TOKEN_EQUAL_EQUAL, TOKEN_BANG_EQUAL)){
+        left = expr;
+        op = previous();
+        right = parseComparison();
+        END_PARSING_IF_ERROR();
+
+        expr = newExpr(BINARY_EXPR);
+        expr->body._bin->op = op;
+        expr->body._bin->left = left;
+        expr->body._bin->right = right;
+    }
+
+    end_parsing: RETURN_EXPR(expr);
+}
+
+static Expr* parseComparison(){
+    Expr *expr;
+    Expr *left;
+    Expr *right;
+    Token op;
+
     expr = parseTerm();
     END_PARSING_IF_ERROR();
 
-    while(match(TOKEN_EQUAL_EQUAL, TOKEN_BANG_EQUAL, TOKEN_LESS, TOKEN_LESS_EQUAL, TOKEN_GREATER, TOKEN_GREATER_EQUAL)){
+    while(match(TOKEN_LESS, TOKEN_LESS_EQUAL, TOKEN_GREATER, TOKEN_GREATER_EQUAL)){
         left = expr;
         op = previous();
         right = parseTerm();
@@ -392,7 +428,7 @@ Expr* parseEquality(){
         expr->body._bin->right = right;
     }
 
-    end_parsing: RETURN_EXPR(expr);
+    end_parsing: RETURN_EXPR(expr);   
 }
 
 Expr* parseTerm(){
@@ -407,7 +443,7 @@ Expr* parseTerm(){
     while(match(TOKEN_PLUS, TOKEN_MINUS)){
         left = expr;
         op = previous();
-        right = parseTerm();
+        right = parseFactor();
         END_PARSING_IF_ERROR();
 
         expr = newExpr(BINARY_EXPR);
@@ -469,8 +505,11 @@ Expr* parsePrimary(){
     else if(match(TOKEN_IDENTIFIER)){
         return parseVarExpr();
     }
-    else {
+    else if(match(TOKEN_NUMBER, TOKEN_STRING, TOKEN_TRUE, TOKEN_FALSE, TOKEN_NIL)){
         return parseLiteral();
+    } else {
+        PARSER_ERROR("Invalid token");
+        return NULL;
     }
 }
 
@@ -480,7 +519,7 @@ Expr* parseGroup(){
     body = expr = parseExpr();
     END_PARSING_IF_ERROR();
 
-    consume(TOKEN_RIGHT_PAREN, "Expect closing '('");
+    consume(TOKEN_RIGHT_PAREN, "Expect closing ')'");
     END_PARSING_IF_ERROR();
 
     expr = newExpr(GROUP_EXPR);
@@ -491,7 +530,7 @@ Expr* parseGroup(){
 
 Expr* parseLiteral(){
     Token lit = previous();
-    Expr *expr = newExpr(VAR_EXPR);
+    Expr *expr = newExpr(LITERAL_EXPR);
     expr->body._lit->token = lit;
     return expr;
 }

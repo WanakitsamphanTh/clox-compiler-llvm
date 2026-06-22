@@ -1,8 +1,9 @@
 #include "compiler/statement.h"
 #include <stdlib.h>
 
-Stmt* newStatement(StmtType type){
+Stmt* newStmt(StmtType type){
     Stmt *stmt = malloc(sizeof(Stmt));
+    if(stmt == NULL) return NULL;
     stmt->type = type;
     switch(type){
         case PRINT_STMT:
@@ -15,11 +16,13 @@ Stmt* newStatement(StmtType type){
             break;
         case IF_STMT:
             stmt->body._if = malloc(sizeof(IfStmt));
-            stmt->body._if->condition = stmt->body._if->then_branch = stmt->body._if->else_branch = NULL;
+            stmt->body._if->condition = NULL;
+            stmt->body._if->then_branch = stmt->body._if->else_branch = NULL;
             break;
         case WHILE_STMT:
             stmt->body._while = malloc(sizeof(WhileStmt)); 
-            stmt->body._while->body = stmt->body._while->condition = stmt->body._while->increment = NULL;
+            stmt->body._while->body = stmt->body._while->increment = NULL;
+            stmt->body._while->condition  = NULL;
             break;
         case BREAK_STMT:
         case SKIP_STMT:
@@ -29,14 +32,14 @@ Stmt* newStatement(StmtType type){
             stmt->body._block->stmt_list = newStmtList();
             break;
         case VAR_DECL:
-            stmt->body._var_decl = malloc(sizeof(VAR_DECL)); 
+            stmt->body._var_decl = malloc(sizeof(VarDeclStmt)); 
             stmt->body._var_decl->init_expr = NULL;
             break;
     }
     return stmt;
 }
 
-void freeStatement(Stmt *stmt){
+void freeStmt(Stmt *stmt){
     int i;
     if(stmt == NULL) return;
     switch(stmt->type){
@@ -50,14 +53,14 @@ void freeStatement(Stmt *stmt){
             break;
         case IF_STMT: 
             freeExpr(stmt->body._if->condition);
-            freeStatement(stmt->body._if->then_branch);
-            freeStatement(stmt->body._if->else_branch);
+            freeStmt(stmt->body._if->then_branch);
+            freeStmt(stmt->body._if->else_branch);
             free(stmt->body._if);
             break;
         case WHILE_STMT: 
             freeExpr(stmt->body._while->condition);
-            freeStatement(stmt->body._while->body);
-            freeStatement(stmt->body._while->increment);
+            freeStmt(stmt->body._while->body);
+            freeStmt(stmt->body._while->increment);
             free(stmt->body._while);
             break;
         case BLOCK_STMT:
@@ -70,7 +73,7 @@ void freeStatement(Stmt *stmt){
             break;
         case BREAK_STMT:
         case SKIP_STMT:
-            return;
+            break;
     }
     free(stmt);
 }
@@ -93,9 +96,9 @@ void freeStmtList(StmtList* list){
     int i;
     if(list->stmt != NULL) {
         for(i = 0; i < list->count; i++)
-            freeStatement(list->stmt[i]);
+            freeStmt(list->stmt[i]);
         free(list->stmt);
         list->stmt = NULL;
-        list->count = 0;
     }
+    list->count = 0;
 }

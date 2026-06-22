@@ -1,4 +1,5 @@
 #include "compiler/expression.h"
+#include "value.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -15,12 +16,21 @@ bool tokenToValue(Token token, Value *val_ptr){
         lexeme[token.length - 1] = '\0'; // remove final '"'
         strcpy(tmp, lexeme + 1); // ignore first '"'
         val_ptr->val.str = tmp;
-
     } else if(type == TOKEN_NUMBER) {
         val_ptr->type = NUMBER_VALUE;
         val_ptr->val.num = strtod(lexeme, NULL);
-
-    } else successful = false;
+    } else if(type == TOKEN_TRUE) {
+        val_ptr->type = BOOL_VALUE;
+        val_ptr->val.b = true;
+    }
+    else if(type == TOKEN_FALSE) {
+        val_ptr->type = BOOL_VALUE;
+        val_ptr->val.b = false;
+    }
+    else if(type == TOKEN_NIL){
+        val_ptr->type = NIL_VALUE;
+    }
+    else successful = false;
     
     free(lexeme);
     return successful;
@@ -28,8 +38,12 @@ bool tokenToValue(Token token, Value *val_ptr){
 
 Expr* newExpr(ExprType type){
     Expr* expr = malloc(sizeof(Expr));
+    expr->type = type;
     switch(type){
-        case LITERAL_EXPR: break;
+        case LITERAL_EXPR:
+            expr->body._lit = malloc(sizeof(LiteralExpr));
+            expr->body._lit->token.type = TOKEN_NONE;
+            break;
         case BINARY_EXPR: 
             expr->body._bin = malloc(sizeof(BinaryExpr));
             expr->body._bin->left = expr->body._bin->right = NULL;
@@ -49,9 +63,13 @@ Expr* newExpr(ExprType type){
             expr->body._var->name.type = TOKEN_EOF;
             break;
         case ASSIGNMENT_EXPR:
-            expr->body._var = malloc(sizeof(AssignmentExpr));
-            expr->body._assign->var = expr->body._assign->val = NULL;
+            expr->body._assign = malloc(sizeof(AssignmentExpr));
+            expr->body._assign->var = NULL;
+            expr->body._assign->val = NULL;
             break;
+        default:
+            free(expr);
+            return NULL;
     }
     return expr;
 }
