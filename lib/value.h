@@ -4,10 +4,41 @@
 #include "common.h"
 
 typedef enum {
+    OBJ_INSTANCE,
+    OBJ_STRING,
+    OBJ_FN
+} ObjType;
+
+typedef struct _Obj {
+    // meta info
+    void (*destructor)(void*);
+    ObjType type;
+
+    // next
+    struct _Obj* next;
+} Obj;
+
+Obj* AllocateObj(ObjType type, void (*destructor)(void*), size_t size);
+
+typedef struct {    
+    Obj obj;
+    size_t len;     /*len = strlen(str) (not including '\0')*/
+    //char* str;
+    char str[];
+} ObjString;
+
+ObjString* newObjString(const char*);
+ObjString* concatObjString(const ObjString*, const ObjString*);
+
+typedef enum {
+    NIL_VALUE = 0,
+
+    // Value type
     NUMBER_VALUE,
-    STR_VALUE,
     BOOL_VALUE,
-    NIL_VALUE
+
+    // Reference type
+    OBJ_VALUE,
 } ValueType;
 
 typedef struct {
@@ -15,7 +46,7 @@ typedef struct {
     union {
         double num;
         bool b;
-        const char* str;
+        Obj* obj;
     } val;
 } Value;
 
@@ -29,13 +60,33 @@ ValueArray newValueArray();
 void writeValueArray(ValueArray* array, Value value);
 void freeValueArray(ValueArray* array);
 
+void valueToString(Value, char*);
+ObjString* valueToObjString(Value);
+
+void encodeString(char*, const char*);
+char* decodeString(char*);
+
+void freeObj(Obj*);
+bool isObjType(Value, ObjType);
+
+#define IS_BOOL(value) ((value).type == BOOL_VALUE)
+#define IS_NUM(value) ((value).type == NUMBER_VALUE)
+#define IS_NIL(value) ((value).type == NIL_VALUE)
+
 #define VALUE_BOOL(value) ((Value){.type = BOOL_VALUE, .val.b = value})
 #define VALUE_NUM(value) ((Value){.type = NUMBER_VALUE, .val.num = value})
 #define VALUE_NIL ((Value){.type = NIL_VALUE })
 
 #define AS_BOOL(value) ((value).val.b)
 #define AS_NUM(value) ((value).val.num)
+#define AS_OBJ(value) ((value).val.obj)
+#define AS_STR(value) ((ObjString*) (value).val.obj)
+#define AS_CSTR(value) AS_STR(value)->str
 
-void valueToString(Value, char*);
+#define OBJ_TYPE(value) (AS_OBJ(value)->type)
+#define IS_STR(value) isObjType(value, OBJ_STRING)
+
+#define IS_TRUTHY(value) (((value).type == BOOL_VALUE) && ((value).val.b == true))
+#define IS_FALSY(value) !IS_TRUTHY(value)
 
 #endif

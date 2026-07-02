@@ -84,7 +84,6 @@ int disassembleInstruction(const Chunk* chunk, int offset){
 
         case OP_CONST:
             return constantInstruction("OP_CONST", chunk, offset);
-
         case OP_PRINT:
             return simpleInstruction("OP_PRINT", offset);
         default:
@@ -109,7 +108,16 @@ int constantInstruction(const char* instruction, const Chunk* chunk, int offset)
     char buffer[256];
     valueToString(value, buffer);
     printf("%-16s %4d\t", instruction, constant);
-    printf("\'%s\'", buffer);
+    if(value.type == OBJ_VALUE){
+        if(value.val.obj->type == OBJ_STRING){
+            char tmp[256];
+            encodeString(tmp, buffer);
+            printf("\'%s\'", tmp);
+        }
+        else {
+            printf("<Object>");
+        }
+    } else printf("\'%s\'", buffer);
     printf("\n");
     return offset + 2;
 }

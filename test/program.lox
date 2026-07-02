@@ -1,2 +1,13 @@
-print ((1 + 2) * 4 + 9 != 21) or true;
-print 1 + 1 + 1/2 + 1/6 + 1/24 + 1/120; 
+print 10 + 10;
+print 10 - 10;
+print 10 * 10;
+print 10 / 10;
+
+print "Hello world";
+print -10;
+print "abc" == "abc";
+print "Concat" + "Enate";
+print "COncat to " + 100;
+print "Concat to " + true;
+print "Concat to " + nil;
+print 100 + " String"; # must be error

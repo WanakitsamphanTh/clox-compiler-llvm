@@ -1,7 +1,10 @@
 #include "value.h"
 #include "memory.h"
+#include "vm.h"
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 ValueArray newValueArray(){
     ValueArray v_array = {0, 0, NULL};
@@ -26,6 +29,40 @@ void freeValueArray(ValueArray* array) {
     *array = newValueArray();
 }
 
+Obj* AllocateObj(ObjType type, void (*destructor)(void*), size_t size){
+    Obj* obj = malloc(size);
+    obj->type = type;
+    obj->destructor = destructor;
+
+    obj->next = vm.objects;
+    vm.objects = obj;
+
+    return obj;
+}
+
+ObjString* newObjString(const char* src){
+    char* c = src;
+    while(*c) c++;
+    size_t len = c - src;
+
+    ObjString* str = AllocateObj(OBJ_STRING, NULL, sizeof(ObjString) + (len + 1));
+    str->len = len;
+    strcpy(str->str, src);
+    str->str[len] = '\0';
+
+    return str;
+}
+
+ObjString* concatObjString(const ObjString *s1, const ObjString *s2){
+    size_t len = s1->len + s2->len;
+    ObjString* str = AllocateObj(OBJ_STRING, NULL, sizeof(ObjString) + (len + 1));
+    str->len = len;
+    strcpy(str->str, s1->str);
+    strcpy(str->str + s1->len, s2->str);
+    str->str[str->len] = '\0';
+    return str;
+}
+
 void valueToString(Value v, char* buffer){
     switch(v.type){
         case BOOL_VALUE: 
@@ -37,7 +74,79 @@ void valueToString(Value v, char* buffer){
         case NIL_VALUE:
             sprintf(buffer, "nil"); 
             break;
-        case STR_VALUE:
-            sprintf(buffer, "%s", v.val.str);
+        case OBJ_VALUE:
+            switch(v.val.obj->type){
+                case OBJ_STRING:{
+                    sprintf(buffer, "%s", AS_CSTR(v));
+                    break;
+                }
+                default:
+                    sprintf(buffer, "[Object Instance]");
+            }
+    }
+}
+
+ObjString* valueToObjString(Value v){
+    static char buffer[256];
+    valueToString(v, buffer);
+    return newObjString(buffer);
+}
+
+char* decodeString(char* str){
+    char *c1, *c2;
+    c1 = c2 = str;
+    while(*c2){
+        if(*c2 == '\\'){
+            c2++;
+            if(*c2 == '\0') break;
+            switch(*c2){
+                case '\\': *(c1++) = '\\'; break;
+                case 'n': *(c1++) = '\n'; break;
+                case 't': *(c1++) = '\t'; break;
+                case '"': *(c1++) = '"'; break;
+                case '0': *(c1++) = '\0'; break;
+                default:
+                    *(c1++) = '\\';
+                    *c1 = *c2; 
+            }
+        }
+        else {
+            *(c1++) = *c2;
+        }
+        c2++;
+    }
+    *c1 = '\0';
+    int len = c1 - str;
+    return realloc(str, len + 1);
+}
+
+void encodeString(char* dist, const char* str){
+    char *c1 = dist;
+    const char *c2 = str;
+    while(*c2){
+        switch(*c2){
+            case '\n': *c1 = '\\'; *(++c1) = 'n'; break;
+            case '\t': *c1 = '\\'; *(++c1) = 't'; break;
+            case '"': *c1 = '\\'; *(++c1) = '"'; break;
+            case '\\': *c1 = '\\'; *(++c1) = '\\'; break;
+            default:
+                *c1 = *c2;
+        }
+        c1++;
+        c2++;
+    }
+    *c1 = '\0';
+}
+
+bool isObjType(Value v, ObjType t){
+    if(v.type != OBJ_VALUE) return false;
+    return v.val.obj->type == t;
+}
+
+void freeObj(Obj* obj){
+    if(obj){
+        if(obj->destructor)
+            obj->destructor(obj);
+        free(obj);
     }
 }

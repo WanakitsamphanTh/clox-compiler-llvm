@@ -6,16 +6,20 @@
 
 bool tokenToValue(Token token, Value *val_ptr){
     char* lexeme = getLexeme(token);
-    char* tmp;
     TokenType type = token.type;
     bool successful = true;
 
     if(type == TOKEN_STRING) {
-        val_ptr->type = STR_VALUE;
-        tmp = malloc(token.length + 1 - 2);
-        lexeme[token.length - 1] = '\0'; // remove final '"'
-        strcpy(tmp, lexeme + 1); // ignore first '"'
-        val_ptr->val.str = tmp;
+       char* temp = malloc(token.length + 1 - 2);
+       lexeme[token.length - 1] = '\0';
+       strcpy(temp, lexeme + 1);
+       temp = decodeString(temp);
+
+       ObjString* string = newObjString(temp);
+       free(temp);
+       val_ptr->type = OBJ_VALUE;
+       val_ptr->val.obj = string;
+       
     } else if(type == TOKEN_NUMBER) {
         val_ptr->type = NUMBER_VALUE;
         val_ptr->val.num = strtod(lexeme, NULL);

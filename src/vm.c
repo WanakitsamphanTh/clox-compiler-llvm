@@ -2,18 +2,37 @@
 #include "value.h"
 #include <stddef.h>
 #include <stdio.h>
+#include <string.h>
+#include <stdarg.h>
 
 VM vm;
+
+static void freeObjects();
 
 static uint8_t readByte();
 static Value vmReadConstant();
 static void resetStack();
+static Value vmPeek(size_t);
+static void RuntimeError(const char* fmt, ...);
 
 void initVM(){
     resetStack();
+    vm.objects = NULL;
 }
 
-void freeVM(){}
+void freeVM(){
+    freeObjects();
+}
+
+void freeObjects(){
+    Obj* obj = vm.objects;
+    Obj* next;
+    while(obj){
+        next = obj->next;
+        freeObj(obj);
+        obj = next;
+    }
+}
 
 InterpretResult vmInterpret(Chunk* chunk) {
     vm.chunk = chunk;
@@ -24,23 +43,30 @@ InterpretResult vmInterpret(Chunk* chunk) {
 #define ARITH_BINARY_OP(op) do { \
     Value b = vmPop(); \
     Value a = vmPop(); \
-    a.val.num = a.val.num op b.val.num; \
-    vmPush(a); \
+    if(!IS_NUM(a) || !IS_NUM(b)){ \
+        RuntimeError("Operands must be both number & number"); \
+        return INTERPRET_RUNTIME_ERROR; \
+    } \
+    Value c = VALUE_NUM(AS_NUM(a) op AS_NUM(b)); \
+    vmPush(c); \
     } while(0)
 
 #define COMP_BINARY_OP(op) do { \
     Value b = vmPop(); \
     Value a = vmPop(); \
-    a.val.b = a.val.num op b.val.num; \
-    a.type = BOOL_VALUE; \
-    vmPush(a); \
+    if(!IS_NUM(a) || !IS_NUM(b)){ \
+        RuntimeError("Operands must be both number & number"); \
+        return INTERPRET_RUNTIME_ERROR; \
+    } \
+    Value c = VALUE_BOOL(AS_NUM(a) op AS_NUM(b)); \
+    vmPush(c); \
     } while(0)
 
 #define BOOL_BINARY_OP(op) do { \
     Value b = vmPop(); \
     Value a = vmPop(); \
-    a.val.b = a.val.b op b.val.b; \
-    vmPush(a); \
+    Value c = VALUE_BOOL(IS_TRUTHY(a) op IS_TRUTHY(b)); \
+    vmPush(c); \
     } while(0)
 
 InterpretResult runVM(){
@@ -67,29 +93,49 @@ InterpretResult runVM(){
             case OP_NIL: 
                 vmPush(VALUE_NIL);
                 break;
-            
             case OP_NEGATE:
-                value = vmPop();
-                value.val.num = -value.val.num;
-                vmPush(value); 
+                if(vmPeek(0).type != NUMBER_VALUE){
+                    RuntimeError("Operand must be a number.");
+                    return INTERPRET_RUNTIME_ERROR;
+                } else {
+                    value = vmPop();
+                    value.val.num = -value.val.num;
+                    vmPush(value); 
+                }
                 break;
-            case OP_ADD:
-                ARITH_BINARY_OP(+); break;
+            case OP_ADD:{
+                if(IS_STR(vmPeek(1))){
+                    Value b = vmPop();
+                    Value a = vmPop();
+                    ObjString *first = AS_STR(a);
+                    ObjString *second;
+
+                    if(!IS_STR(b)){
+                        second = valueToObjString(b);
+                    } else {
+                        second = AS_STR(b);
+                    }
+                    Value c;
+                    c.type = OBJ_VALUE;
+                    c.val.obj = concatObjString(first, second);
+                    vmPush(c);
+                } else
+                    ARITH_BINARY_OP(+);
+                break;
+            }
             case OP_SUB:
                 ARITH_BINARY_OP(-); break;
             case OP_MULT:
                 ARITH_BINARY_OP(*); break;
             case OP_DIV:
                 ARITH_BINARY_OP(/); break;
-
             case OP_AND: 
                 BOOL_BINARY_OP(&&); break;
             case OP_OR:
                 BOOL_BINARY_OP(||); break;
             case OP_CMPL:
                 value = vmPop();
-                value.val.b = !value.val.b;
-                vmPush(value); 
+                vmPush(VALUE_BOOL(!IS_TRUTHY(value))); 
                 break;
             case OP_LESS:
                 COMP_BINARY_OP(<); break;
@@ -99,8 +145,25 @@ InterpretResult runVM(){
                 COMP_BINARY_OP(>); break;
             case OP_GREATER_EQ:
                 COMP_BINARY_OP(>=); break;
-            case OP_EQ:
-                COMP_BINARY_OP(==); break;
+            case OP_EQ:{
+                Value b = vmPop();
+                Value a = vmPop();
+                Value c; 
+                if(a.type == OBJ_VALUE  && b.type == OBJ_VALUE){
+                    if(a.val.obj->type == OBJ_STRING && b.val.obj->type == OBJ_STRING)
+                        c = VALUE_BOOL(strcmp(AS_CSTR(a), AS_CSTR(b)) == 0);
+                    else c = VALUE_BOOL(false);
+                } else if(a.type == NUMBER_VALUE && b.type == NUMBER_VALUE) {
+                    c = VALUE_BOOL(AS_NUM(a) == AS_NUM(b));
+                } else if(a.type == BOOL_VALUE && b.type == BOOL_VALUE){
+                    c = VALUE_BOOL(AS_BOOL(a) == AS_BOOL(b));
+                }
+                else {
+                    c= VALUE_BOOL(false); 
+                }
+                vmPush(c); 
+                break;
+            }
 
             case OP_PRINT:
                 value = vmPop();
@@ -109,8 +172,8 @@ InterpretResult runVM(){
                 break;
 
             default:
-                fprintf(stderr, "Unknown opcode %d\n", instruction);
-                return INTERPRET_ERROR;
+                RuntimeError("Unknown opcode %d\n", instruction);
+                return INTERPRET_RUNTIME_ERROR;
         }
     }
 }
@@ -134,4 +197,17 @@ Value vmReadConstant() {
 
 void resetStack() {
     vm.stackTop = vm.stack;
+}
+
+static Value vmPeek(size_t dist){
+    return *(vm.stackTop - 1 - dist);
+}
+
+void RuntimeError(const char* fmt, ...){
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(stderr, fmt, args);
+    va_end(args);
+    fputs("\n", stderr);
+    resetStack();
 }

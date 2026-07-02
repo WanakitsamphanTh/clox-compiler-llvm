@@ -206,10 +206,12 @@ static TokenType scanString(int* length){
         if(c == '\"') break;
         if(c == '\n') scanner.line++;
         if(c == '\\'){
-            if(c != '\0'){
-                scannerAdvance();
-                (*length)++;
-            }
+            char next = scannerAdvance();
+            if (next == '\0')
+                return TOKEN_ERROR;
+            (*length)++;
+            if (next == '\n')
+                scanner.line++;
         }
     }
     return TOKEN_STRING;

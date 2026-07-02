@@ -79,33 +79,34 @@ bool compile(const char* source, Chunk* chunk){
     return successful;   
 }
 
-bool compileStatementList(StmtList* list){
-    if(compile_error) return false;
-    bool successful = true;
+void compileStatementList(StmtList* list){
+    if(compile_error) return;
     int i;
 
     for(i = 0; i < list->count; i++){
-        successful = compileStatement(list->stmt[i]);
-        if(!successful)
-            break;
+        compileStatement(list->stmt[i]);
+        if(compile_error)
+            return;
     }
 
-    return successful;
+    return;
 }
 
-#define TRY successful =
-#define TERMINATE_IF_ERROR() if(!successful) goto terminate_compilation
+//#define TRY successful =
+#define TERMINATE_IF_ERROR() if(compile_error) goto terminate_compilation
 
-bool compileStatement(Stmt* stmt){
-    if(compile_error) return false;
-    bool successful = true;
+void compileStatement(Stmt* stmt){
+    if(compile_error) return;
 
     switch(stmt->type){
+        case BLOCK_STMT:
+            compileStatementList(&stmt->body._block->stmt_list); TERMINATE_IF_ERROR();
+            break;
         case EXPR_STMT: 
-            TRY compileExpr(stmt->body._expr->expr); TERMINATE_IF_ERROR();
+            compileExpr(stmt->body._expr->expr); TERMINATE_IF_ERROR();
             break;
         case PRINT_STMT:
-            TRY compileExpr(stmt->body._print->expr); TERMINATE_IF_ERROR();
+            compileExpr(stmt->body._print->expr); TERMINATE_IF_ERROR();
             emitByte(OP_PRINT);
             break;
         default:
@@ -113,13 +114,12 @@ bool compileStatement(Stmt* stmt){
     }
 
     terminate_compilation:
-        return successful;
+        return;
 }
 
-bool compileExpr(Expr* expr){
-    if(compile_error) return false;
+void compileExpr(Expr* expr){
+    if(compile_error) return;
     
-    bool successful = true;
     Chunk *chunk = currentChunk();
     switch(expr->type){
         case LITERAL_EXPR:{
@@ -132,7 +132,7 @@ bool compileExpr(Expr* expr){
                     emitByte(OP_NIL); break;
                 default:{
                     Value value;
-                    TRY tokenToValue(expr->body._lit->token, &value); TERMINATE_IF_ERROR();
+                    tokenToValue(expr->body._lit->token, &value); TERMINATE_IF_ERROR();
                     emitConstant(value);
                 }
             }
@@ -142,27 +142,27 @@ bool compileExpr(Expr* expr){
             break;
         }
         case GROUP_EXPR: // to be implemented
-            TRY compileExpr(expr->body._group->expr); TERMINATE_IF_ERROR();
+            compileExpr(expr->body._group->expr); TERMINATE_IF_ERROR();
             break;
         case BINARY_EXPR:
-            TRY compileExpr(expr->body._bin->left); TERMINATE_IF_ERROR();
-            TRY compileExpr(expr->body._bin->right); TERMINATE_IF_ERROR();
-            TRY compileOperator(expr->body._bin->op.type, expr->type); TERMINATE_IF_ERROR();
+            compileExpr(expr->body._bin->left); TERMINATE_IF_ERROR();
+            compileExpr(expr->body._bin->right); TERMINATE_IF_ERROR();
+            compileOperator(expr->body._bin->op.type, expr->type); TERMINATE_IF_ERROR();
             break;
         case UNARY_EXPR: 
-            TRY compileExpr(expr->body._unary->right); TERMINATE_IF_ERROR();
-            TRY compileOperator(expr->body._unary->op.type, expr->type); TERMINATE_IF_ERROR();
+            compileExpr(expr->body._unary->right); TERMINATE_IF_ERROR();
+            compileOperator(expr->body._unary->op.type, expr->type); TERMINATE_IF_ERROR();
             break;
         case ASSIGNMENT_EXPR: // to be implemented
             break;
     }
 
     terminate_compilation:
-        return successful;
+        return;
 }
 
-bool compileOperator(TokenType op, ExprType expr_type){
-    if(compile_error) return false;
+void compileOperator(TokenType op, ExprType expr_type){
+    if(compile_error) return;
 
     switch(op){
         case TOKEN_PLUS:
@@ -172,7 +172,10 @@ bool compileOperator(TokenType op, ExprType expr_type){
                 emitByte(OP_SUB); 
             else if(expr_type == UNARY_EXPR)
                 emitByte(OP_NEGATE);
-            else return false;
+            else {
+                COMPILE_ERROR("Operator '-' in an invalid expression");
+                return;
+            }
             break;
         case TOKEN_STAR:
             emitByte(OP_MULT);  break;
@@ -194,15 +197,15 @@ bool compileOperator(TokenType op, ExprType expr_type){
         case TOKEN_GREATER_EQUAL:
             emitByte(OP_GREATER_EQ); break;
         case TOKEN_EQUAL_EQUAL:
-            emitByte(OP_GREATER_EQ); break;
+            emitByte(OP_EQ); break;
         case TOKEN_BANG_EQUAL:
             emitBytes(2, OP_EQ, OP_CMPL); break;
         
         default:
             COMPILE_ERROR("Unknown parameter %d", op);
-            return false;
+            return;
     }
-    return true;
+    return;
 }
 
 
