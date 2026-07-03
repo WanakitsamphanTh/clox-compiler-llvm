@@ -40,15 +40,24 @@ Obj* AllocateObj(ObjType type, void (*destructor)(void*), size_t size){
     return obj;
 }
 
-ObjString* newObjString(const char* src){
-    char* c = src;
-    while(*c) c++;
-    size_t len = c - src;
+uint32_t hashString(const char* key, int length){
+    uint32_t hash = 2166136261u;
+    for (int i = 0; i < length; i++) {
+        hash ^= (uint8_t)key[i];
+        hash *= 16777619;
+    }
+    return hash;
+}
 
+ObjString* newObjString(const char* src, size_t len, uint32_t hash){
     ObjString* str = AllocateObj(OBJ_STRING, NULL, sizeof(ObjString) + (len + 1));
+
     str->len = len;
     strcpy(str->str, src);
     str->str[len] = '\0';
+    str->hash = hash; 
+
+    tableSet(&vm.strings, str, VALUE_NIL);  // add new string to the string pool
 
     return str;
 }
@@ -60,6 +69,7 @@ ObjString* concatObjString(const ObjString *s1, const ObjString *s2){
     strcpy(str->str, s1->str);
     strcpy(str->str + s1->len, s2->str);
     str->str[str->len] = '\0';
+    str->hash = 0;          /* hash is no need in runtime*/
     return str;
 }
 
@@ -89,7 +99,7 @@ void valueToString(Value v, char* buffer){
 ObjString* valueToObjString(Value v){
     static char buffer[256];
     valueToString(v, buffer);
-    return newObjString(buffer);
+    return newObjString(buffer, strlen(buffer), 0);     /* no need for runtime string*/
 }
 
 char* decodeString(char* str){

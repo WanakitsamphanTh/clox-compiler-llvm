@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 int growCapacity(int capacity){
-    return (capacity) < 8 ? 8 : (capacity) * 2;
+    return (capacity) < 8 ? 8 : capacity * 2;
 }
 
 void* growArray(size_t size, void* array, int old_capacity, int capacity) {

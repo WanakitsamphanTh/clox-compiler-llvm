@@ -23,11 +23,12 @@ Obj* AllocateObj(ObjType type, void (*destructor)(void*), size_t size);
 typedef struct {    
     Obj obj;
     size_t len;     /*len = strlen(str) (not including '\0')*/
-    //char* str;
+    uint32_t hash;
     char str[];
 } ObjString;
 
-ObjString* newObjString(const char*);
+uint32_t hashString(const char* key, int length);
+ObjString* newObjString(const char*, size_t, uint32_t);
 ObjString* concatObjString(const ObjString*, const ObjString*);
 
 typedef enum {
