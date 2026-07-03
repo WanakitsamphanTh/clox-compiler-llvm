@@ -82,8 +82,17 @@ int disassembleInstruction(const Chunk* chunk, int offset){
         case OP_EQ:
             return simpleInstruction("OP_EQ", offset);
 
+        case OP_POP:
+            return simpleInstruction("OP_POP", offset);
+
+        case OP_DEFINE_GLOBAL:
+            return constantInstruction("OP_DEFINE_GLOBAL", chunk, offset);
+        case OP_LOAD_GLOBAL:
+            return constantInstruction("OP_LOAD_GLOBAL", chunk, offset);
+        
         case OP_CONST:
             return constantInstruction("OP_CONST", chunk, offset);
+            
         case OP_PRINT:
             return simpleInstruction("OP_PRINT", offset);
         default:
@@ -92,7 +101,12 @@ int disassembleInstruction(const Chunk* chunk, int offset){
     }
 }
 
+
 int addConstant(Chunk* chunk, Value value){
+    int i;
+    for(i = 0; i < chunk->count; i++){
+        if(compareValue(value, chunk->constants.values[i])) return i;
+    }
     writeValueArray(&chunk->constants, value);
     return chunk->constants.count - 1;
 }

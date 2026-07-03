@@ -18,8 +18,10 @@ static void emitBytes(int,...);
 static Chunk* currentChunk();
 
 bool compile(const char*, Chunk*);
-bool emitConstant(Value);
-uint8_t makeConstant(Value);
+static bool emitConstant(Value);
+static uint8_t makeConstant(Value);
+static uint8_t makeIdentifierConstant(const char*, int);
+static  void defineVariable(uint32_t);
 
 #define emitByte(b) emitBytes(1, b)
 

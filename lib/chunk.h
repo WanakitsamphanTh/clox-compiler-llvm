@@ -31,6 +31,9 @@ typedef enum {
     OP_GREATER_EQ,
     OP_EQ,
 
+    OP_POP,
+    OP_DEFINE_GLOBAL,
+    OP_LOAD_GLOBAL,
     OP_LOAD,
     OP_STORE,
 

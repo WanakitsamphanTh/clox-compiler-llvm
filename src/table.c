@@ -2,6 +2,7 @@
 #include "memory.h"
 #include "value.h"
 #include <assert.h>
+#include <string.h>
 
 void initTable(Table* table){
     table->count = 0;
@@ -100,8 +101,8 @@ Entry* findEntry(Entry* entries, int capacity, const ObjString* k){
 }
 
 ObjString* tableFindString(Table* table, const char* k, size_t len, uint32_t hash){
-    if(table->count == NULL) return NULL;
-    if(table->count == NULL) return NULL;
+    if(table->count == 0) return NULL;
+    if(table->count == 0) return NULL;
 
     uint32_t index = hash % table->capacity;
     Entry* tombstone = NULL;

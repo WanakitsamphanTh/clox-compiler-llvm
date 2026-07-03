@@ -1,0 +1,12 @@
+print 10 + 10;
+print 10 - 10;
+print 10 * 10;
+print 10 / 10;
+
+print "Hello world";
+print -10;
+print "abc" == "abc";
+print "Concat" + "enate";
+print "Concat to " + 100;
+print "Concat to " + true;
+print "Concat to " + nil;

@@ -11,29 +11,12 @@ bool tokenToValue(Token token, Value *val_ptr){
     bool successful = true;
 
     if(type == TOKEN_STRING) {
-       /*int len = token.length - 2;
-       char* temp = malloc(len + 1);
-       lexeme[token.length - 1] = '\0';
-       strcpy(temp, lexeme + 1);
-       //memcpy(temp, lexeme+1, len);
-       temp = decodeString(temp);
-       len = strlen(temp);
-
-
-       uint32_t hash = hashString(temp, len);
-       ObjString* string = newObjString(temp, len, hash);
-       free(temp);
-       val_ptr->type = OBJ_VALUE;
-       val_ptr->val.obj = string;*/
-
         lexeme[token.length - 1] = '\0'; // remove the last "
         lexeme = decodeString(lexeme);
         char* literal = lexeme + 1;
         size_t len = strlen(literal); // remove the first "
 
-        uint32_t hash = hashString(literal, len);
-        ObjString* string = tableFindString(&vm.strings, literal, len, hash);
-        if(string == NULL) string = newObjString(literal, len, hash);
+        ObjString* string = makeObjString(literal, len);
 
         val_ptr->type = OBJ_VALUE;
         val_ptr->val.obj = string;

@@ -49,11 +49,18 @@ uint32_t hashString(const char* key, int length){
     return hash;
 }
 
+ObjString* makeObjString(const char* src, int length){
+    uint8_t hash = hashString(src, length);
+    ObjString* string = tableFindString(&vm.strings, src, length, hash);
+    if(string == NULL) string = newObjString(src, length, hash);
+    return string;
+}
+
 ObjString* newObjString(const char* src, size_t len, uint32_t hash){
     ObjString* str = AllocateObj(OBJ_STRING, NULL, sizeof(ObjString) + (len + 1));
 
     str->len = len;
-    strcpy(str->str, src);
+    memcpy(str->str, src, len);
     str->str[len] = '\0';
     str->hash = hash; 
 
@@ -159,4 +166,12 @@ void freeObj(Obj* obj){
             obj->destructor(obj);
         free(obj);
     }
+}
+
+bool compareValue(Value v1, Value v2){
+    /*if(v1.type != v2.type) return false;
+    if(v1.type == OBJ_VALUE) return v1.val.obj == v2.val.obj;
+    if(v1.type == NUMBER_VALUE) return v1.val.num == v2.val.num;
+    if(v1.type == BOOL_VALUE) return v1.val.b == v2.val.b;
+    return false;*/
 }

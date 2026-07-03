@@ -1,0 +1,11 @@
+var x = 100 * 4 + 1 - 4;
+print x;
+
+var y = -23;
+print y;
+
+var z;
+print z;
+
+var a = "x * y = " + x * y;
+print a;

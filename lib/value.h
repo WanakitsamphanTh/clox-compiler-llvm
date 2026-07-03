@@ -27,7 +27,8 @@ typedef struct {
     char str[];
 } ObjString;
 
-uint32_t hashString(const char* key, int length);
+uint32_t hashString(const char*, int);
+ObjString* makeObjString(const char*, int);
 ObjString* newObjString(const char*, size_t, uint32_t);
 ObjString* concatObjString(const ObjString*, const ObjString*);
 
@@ -69,6 +70,7 @@ char* decodeString(char*);
 
 void freeObj(Obj*);
 bool isObjType(Value, ObjType);
+bool compareValue(Value, Value);
 
 #define IS_BOOL(value) ((value).type == BOOL_VALUE)
 #define IS_NUM(value) ((value).type == NUMBER_VALUE)
@@ -77,6 +79,7 @@ bool isObjType(Value, ObjType);
 #define VALUE_BOOL(value) ((Value){.type = BOOL_VALUE, .val.b = value})
 #define VALUE_NUM(value) ((Value){.type = NUMBER_VALUE, .val.num = value})
 #define VALUE_NIL ((Value){.type = NIL_VALUE })
+#define VALUE_OBJ(ptr) ((Value){.type = OBJ_VALUE, .val.obj = ptr})
 
 #define AS_BOOL(value) ((value).val.b)
 #define AS_NUM(value) ((value).val.num)

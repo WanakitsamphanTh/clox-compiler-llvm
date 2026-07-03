@@ -102,12 +102,29 @@ void compileStatement(Stmt* stmt){
         case BLOCK_STMT:
             compileStatementList(&stmt->body._block->stmt_list); TERMINATE_IF_ERROR();
             break;
+
         case EXPR_STMT: 
             compileExpr(stmt->body._expr->expr); TERMINATE_IF_ERROR();
+            emitByte(OP_POP);
             break;
+
         case PRINT_STMT:
             compileExpr(stmt->body._print->expr); TERMINATE_IF_ERROR();
             emitByte(OP_PRINT);
+            break;
+
+        case VAR_DECL:
+            /* emit rvalue*/
+            if(stmt->body._var_decl->init_expr)
+                compileExpr(stmt->body._var_decl->init_expr);
+            else emitByte(OP_NIL);
+
+            /*define variable*/
+            const char* name = stmt->body._var_decl->name.start;
+            int length = stmt->body._var_decl->name.length;
+            uint32_t global = makeIdentifierConstant(name, length);
+            defineVariable(global);
+
             break;
         default:
             COMPILE_ERROR("Unimplemented statement");
@@ -138,7 +155,11 @@ void compileExpr(Expr* expr){
             }
             break;
         }
-        case VAR_EXPR: {// to be implemented
+        case VAR_EXPR: {
+            const char* name = expr->body._var->name.start;
+            int len = expr->body._var->name.length;
+            uint8_t ref = makeIdentifierConstant(name, len);
+            emitBytes(2, OP_LOAD_GLOBAL, ref);
             break;
         }
         case GROUP_EXPR: // to be implemented
@@ -153,8 +174,10 @@ void compileExpr(Expr* expr){
             compileExpr(expr->body._unary->right); TERMINATE_IF_ERROR();
             compileOperator(expr->body._unary->op.type, expr->type); TERMINATE_IF_ERROR();
             break;
-        case ASSIGNMENT_EXPR: // to be implemented
+        case ASSIGNMENT_EXPR: { /* to implement*/
+            compileExpr(expr->body._assign->val); TERMINATE_IF_ERROR();
             break;
+        }
     }
 
     terminate_compilation:
@@ -234,6 +257,15 @@ uint8_t makeConstant(Value value){
         return 0;
     }
     return constant;
+}
+
+uint8_t makeIdentifierConstant(const char* name, int len){
+    ObjString *var_name = makeObjString(name, len);
+    return makeConstant(VALUE_OBJ(var_name));
+}
+
+ void defineVariable(uint32_t global){
+    emitBytes(2, OP_DEFINE_GLOBAL, global);
 }
 
 Chunk* currentChunk(){

@@ -18,11 +18,13 @@ static void RuntimeError(const char* fmt, ...);
 void initVM(){
     resetStack();
     initTable(&vm.strings);
+    initTable(&vm.globals);
     vm.objects = NULL;
 }
 
 void freeVM(){
     freeTable(&vm.strings);
+    freeTable(&vm.globals);
     freeObjects();
 }
 
@@ -173,6 +175,31 @@ InterpretResult runVM(){
                 printf("%s\n", buffer);
                 break;
 
+            case OP_DEFINE_GLOBAL:{
+                ObjString* name = AS_STR(vmReadConstant());
+                Value init_val = vmPeek(0);
+                valueToString(init_val, buffer);
+                tableSet(&vm.globals, name, init_val);
+                vmPop();
+                break;
+            }
+
+            case OP_LOAD_GLOBAL:{
+                ObjString* name = AS_STR(vmReadConstant());
+                Value val;
+                if(!tableGet(&vm.globals, name, &val)) {
+                    RuntimeError("Unknown variable %s\n", name->str);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                valueToString(val, buffer);
+                vmPush(val);
+                break;
+            }
+
+            case OP_POP:
+                vmPop();
+                break;
+            
             default:
                 RuntimeError("Unknown opcode %d\n", instruction);
                 return INTERPRET_RUNTIME_ERROR;
