@@ -4,6 +4,7 @@
 #include "memory.h"
 
 static int simpleInstruction(const char*, int);
+static int jumpInstruction(const char*, int, const Chunk*, int);
 static int constantInstruction(const char*, const Chunk*, int);
 
 Chunk newChunk() {
@@ -94,6 +95,12 @@ int disassembleInstruction(const Chunk* chunk, int offset){
 
         case OP_CONST:
             return constantInstruction("OP_CONST", chunk, offset);
+
+        case OP_JMP:
+            return jumpInstruction("OP_JMP", 1, chunk, offset);
+        
+        case OP_JIF:
+            return jumpInstruction("OP_JIF", 1, chunk, offset);
             
         case OP_PRINT:
             return simpleInstruction("OP_PRINT", offset);
@@ -136,4 +143,10 @@ int constantInstruction(const char* instruction, const Chunk* chunk, int offset)
     } else printf("\'%s\'", buffer);
     printf("\n");
     return offset + 2;
+}
+
+int jumpInstruction(const char* instruction, int sgn, const Chunk* chunk, int offset){
+    uint16_t jmp = (uint16_t)(chunk->code[offset + 1] << 8) | chunk->code[offset + 2] & 0xffff;
+    printf("%-16s %4d to %4d\n", instruction, offset, offset + 3 + sgn * jmp);
+    return offset + 3;
 }

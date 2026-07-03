@@ -21,7 +21,9 @@ bool compile(const char*, Chunk*);
 static bool emitConstant(Value);
 static uint8_t makeConstant(Value);
 static uint8_t makeIdentifierConstant(const char*, int);
-static  void defineVariable(uint32_t);
+static void defineVariable(uint8_t);
+static int emitJump(uint8_t);
+static void patchJump(int);
 
 #define emitByte(b) emitBytes(1, b)
 

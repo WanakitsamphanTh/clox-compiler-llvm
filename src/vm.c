@@ -11,6 +11,7 @@ static void freeObjects();
 
 static uint8_t readByte();
 static Value vmReadConstant();
+static uint16_t vmReadShort();
 static void resetStack();
 static Value vmPeek(size_t);
 static void RuntimeError(const char* fmt, ...);
@@ -169,6 +170,19 @@ InterpretResult runVM(){
                 break;
             }
 
+            case OP_JIF:{
+                uint16_t offset = vmReadShort();
+                if(IS_FALSY(vmPeek(0))) 
+                    vm.ip += offset;
+                break;
+            }
+
+            case OP_JMP:{
+                uint16_t offset = vmReadShort();
+                vm.ip += offset;
+                break;
+            }
+
             case OP_PRINT:
                 value = vmPop();
                 valueToString(value, buffer);
@@ -229,6 +243,11 @@ Value vmPop(){
 
 uint8_t readByte(){
     return *(vm.ip++);
+}
+
+uint16_t vmReadShort(){
+    vm.ip += 2;
+    return (uint16_t)((vm.ip[-2] << 8) | vm.ip[-1] & 0xffff);
 }
 
 Value vmReadConstant() {

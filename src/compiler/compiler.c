@@ -120,11 +120,28 @@ void compileStatement(Stmt* stmt){
             const char* name = stmt->body._var_decl->name.start;
             int length = stmt->body._var_decl->name.length;
             char* lexeme = getLexeme(stmt->body._var_decl->name);
-            uint32_t global = makeIdentifierConstant(name, length);
+            uint8_t global = makeIdentifierConstant(name, length);
             defineVariable(global);
-
             break;
-        default:
+        
+        case IF_STMT:{
+            compileExpr(stmt->body._if->condition);
+            int jmp = emitJump(OP_JIF);
+            emitByte(OP_POP);
+            compileStatement(stmt->body._if->then_branch);
+                        
+            int else_jmp = emitJump(OP_JMP);
+            patchJump(jmp);
+            if(stmt->body._if->else_branch){
+                emitByte(OP_POP);
+                compileStatement(stmt->body._if->else_branch);
+            }
+            patchJump(else_jmp);
+            
+            break;
+        }
+        
+            default:
             COMPILE_ERROR("Unimplemented statement");
     }
 
@@ -266,8 +283,26 @@ uint8_t makeIdentifierConstant(const char* name, int len){
     return makeConstant(VALUE_OBJ(var_name));
 }
 
- void defineVariable(uint32_t global){
+ void defineVariable(uint8_t global){
     emitBytes(2, OP_DEFINE_GLOBAL, global);
+}
+
+int emitJump(uint8_t op){
+    emitByte(op);
+    emitBytes(2,0xff,0xff);
+    return currentChunk()->count - 2;
+}
+
+void patchJump(int offset){
+    int jump = currentChunk()->count - offset - 2;
+
+    if(jump > UINT16_MAX) {
+        COMPILE_ERROR("Too many instructions to jump over");
+        return;
+    }
+
+    currentChunk()->code[offset] = (uint8_t) (jump >> 8) & 0xff;
+    currentChunk()->code[offset + 1] = (uint8_t) jump & 0xff;         /* big endian?*/
 }
 
 Chunk* currentChunk(){

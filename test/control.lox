@@ -1,0 +1,17 @@
+var x = 1000;
+var y = 100;
+
+print "case A";
+if(x < y) print "x < y";
+else print "x >= y";
+
+print "case B";
+x = 0;
+if(x < y) print "x < y";
+else print "x >= y";
+
+x = y;
+
+print "case D";
+if(x != y) print "x != y";
+else print "x = y";

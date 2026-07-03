@@ -31,6 +31,10 @@ typedef enum {
     OP_GREATER_EQ,
     OP_EQ,
 
+    // control
+    OP_JMP,
+    OP_JIF, // jump if false
+
     OP_POP,
     OP_DEFINE_GLOBAL,
     OP_LOAD_GLOBAL,
