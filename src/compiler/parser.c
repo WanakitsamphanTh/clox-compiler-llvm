@@ -324,8 +324,8 @@ Expr* parseAssignment(){
 
         if(expr->type == VAR_EXPR) {
             expr = newExpr(ASSIGNMENT_EXPR);
-            expr->body._assign->var = left;
             expr->body._assign->val = right;
+            expr->body._assign->var = left->body._var->name;
         } else {
             freeExpr(right);
             PARSER_ERROR("Invalid assignment target");

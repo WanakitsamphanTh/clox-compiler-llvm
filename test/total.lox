@@ -1,0 +1,10 @@
+var x;
+var y = 0;
+
+var str = "Hello";
+
+print str + " " + x + " " + y;
+
+x = 100;
+
+print str + " " + x + " " + y;

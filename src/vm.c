@@ -196,6 +196,18 @@ InterpretResult runVM(){
                 break;
             }
 
+            case OP_STORE_GLOBAL:{
+                ObjString* name = AS_STR(vmReadConstant());
+                Value val = vmPeek(0);
+                /* if the key is new, it should be error*/
+                if(tableSet(&vm.globals, name, val)) {             
+                    tableDelete(&vm.globals, name);
+                    RuntimeError("Unknown variable %s\n", name->str);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                break;
+            }
+
             case OP_POP:
                 vmPop();
                 break;

@@ -3,7 +3,6 @@
 #include "value.h"
 #include <assert.h>
 #include <string.h>
-
 void initTable(Table* table){
     table->count = 0;
     table->capacity = 0;
@@ -77,7 +76,6 @@ bool tableDelete(Table* table, const ObjString* k){
     if(entry->key == NULL) return false;
     entry->key = NULL;
     entry->value = VALUE_BOOL(true);
-    table->count--;
     return true;
 }
 
@@ -101,11 +99,9 @@ Entry* findEntry(Entry* entries, int capacity, const ObjString* k){
 }
 
 ObjString* tableFindString(Table* table, const char* k, size_t len, uint32_t hash){
-    if(table->count == 0) return NULL;
-    if(table->count == 0) return NULL;
+    if(table->count == 0 || table->capacity == 0) return NULL;
 
     uint32_t index = hash % table->capacity;
-    Entry* tombstone = NULL;
     while(1){
         Entry* entry = &table->entries[index];
         if(entry->key == NULL){

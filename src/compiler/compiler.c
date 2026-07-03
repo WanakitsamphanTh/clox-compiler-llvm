@@ -25,7 +25,6 @@ bool compile(const char* source, Chunk* chunk){
     bool successful = true;
 
     // Scan and tokenization
-    fprintf(stderr, "Start scanning\n");
     initScanner(source);
 
     //set compiling chunk
@@ -45,8 +44,6 @@ bool compile(const char* source, Chunk* chunk){
     // Parsing and AST generation
     initParser(token_list.tokens);
     statements = parse();
-
-    printf("FInished parsing\n");
 
     if(parser.has_error) {
         fprintf(stderr, "Parser error: %s\n", parser.err_msg);
@@ -122,6 +119,7 @@ void compileStatement(Stmt* stmt){
             /*define variable*/
             const char* name = stmt->body._var_decl->name.start;
             int length = stmt->body._var_decl->name.length;
+            char* lexeme = getLexeme(stmt->body._var_decl->name);
             uint32_t global = makeIdentifierConstant(name, length);
             defineVariable(global);
 
@@ -176,6 +174,10 @@ void compileExpr(Expr* expr){
             break;
         case ASSIGNMENT_EXPR: { /* to implement*/
             compileExpr(expr->body._assign->val); TERMINATE_IF_ERROR();
+            const char* name = expr->body._assign->var.start;
+            int len = expr->body._assign->var.length;
+            uint8_t ref = makeIdentifierConstant(name, len);
+            emitBytes(2, OP_STORE_GLOBAL, ref);
             break;
         }
     }
@@ -397,11 +399,13 @@ static bool _debugExpr(Expr* expr, int indent){
             break;
         }
         case ASSIGNMENT_EXPR: 
-            _putIndent(indent++);  printf("Assignment\n");
+            char *var_name = getLexeme(expr->body._assign->var);
+            _putIndent(indent++); printf("Assignment\n");
             _putIndent(indent); printf("Asignee: \n");
-            _debugExpr(expr->body._assign->var, indent+1);
+            _putIndent(indent+1); printf("%s\n", var_name);
             _putIndent(indent); printf("Value: \n");
             _debugExpr(expr->body._assign->val, indent+1);
+            free(var_name);
             break;
     }
 

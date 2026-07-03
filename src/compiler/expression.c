@@ -69,7 +69,7 @@ Expr* newExpr(ExprType type){
             break;
         case ASSIGNMENT_EXPR:
             expr->body._assign = malloc(sizeof(AssignmentExpr));
-            expr->body._assign->var = NULL;
+            expr->body._assign->var.type = TOKEN_NONE;
             expr->body._assign->val = NULL;
             break;
         default:
@@ -102,7 +102,6 @@ void freeExpr(Expr *expr){
             free(expr->body._var);
             break;    
         case ASSIGNMENT_EXPR:
-            freeExpr(expr->body._assign->var);
             freeExpr(expr->body._assign->val);
             free(expr->body._assign);
             break;    

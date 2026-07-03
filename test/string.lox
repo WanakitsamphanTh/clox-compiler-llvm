@@ -1,8 +1,4 @@
-print 10 + 10;
-print 10 - 10;
-print 10 * 10;
-print 10 / 10;
-
+"Hello";
 print "Hello world";
 print -10;
 print "abc" == "abc";

@@ -34,8 +34,7 @@ typedef enum {
     OP_POP,
     OP_DEFINE_GLOBAL,
     OP_LOAD_GLOBAL,
-    OP_LOAD,
-    OP_STORE,
+    OP_STORE_GLOBAL,
 
     OP_PRINT
 } OpCode;

@@ -50,7 +50,7 @@ uint32_t hashString(const char* key, int length){
 }
 
 ObjString* makeObjString(const char* src, int length){
-    uint8_t hash = hashString(src, length);
+    uint32_t hash = hashString(src, length);
     ObjString* string = tableFindString(&vm.strings, src, length, hash);
     if(string == NULL) string = newObjString(src, length, hash);
     return string;
@@ -169,9 +169,10 @@ void freeObj(Obj* obj){
 }
 
 bool compareValue(Value v1, Value v2){
-    /*if(v1.type != v2.type) return false;
+    if(v1.type != v2.type) return false;
     if(v1.type == OBJ_VALUE) return v1.val.obj == v2.val.obj;
     if(v1.type == NUMBER_VALUE) return v1.val.num == v2.val.num;
     if(v1.type == BOOL_VALUE) return v1.val.b == v2.val.b;
-    return false;*/
+    if(v1.type == NIL_VALUE) return true;
+    return false;
 }
