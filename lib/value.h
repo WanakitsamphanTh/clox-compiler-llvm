@@ -51,7 +51,8 @@ ValueArray newValueArray();
 void writeValueArray(ValueArray* array, Value value);
 void freeValueArray(ValueArray* array);
 
-void valueToString(Value, char*);
+//void valueToString(Value, char*, int, int);
+int valueToString(Value v, char* buffer, int max_length);
 
 void encodeString(char*, const char*);
 char* decodeString(char*);
@@ -99,7 +100,7 @@ ObjString* valueToObjString(Value);
 typedef struct {
     Obj obj;
     size_t len;
-    Value elements[]
+    Value elements[];
 } ObjArray;
 
 ObjArray* makeObjArray(size_t, Value*);

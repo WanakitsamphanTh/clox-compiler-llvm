@@ -135,7 +135,8 @@ int constantInstruction(const char* instruction, const Chunk* chunk, int offset)
     uint8_t constant = chunk->code[offset + 1];
     Value value = chunk->constants.values[constant];
     char buffer[256];
-    valueToString(value, buffer);
+    memset(buffer,0,256);
+    valueToString(value, buffer, 255);
     printf("%-16s %04d ", instruction, constant);
     if(value.type == OBJ_VALUE){
         if(value.val.obj->type == OBJ_STRING){

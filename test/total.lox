@@ -1,9 +1,80 @@
-var x = 5;
+# print
+print "Hello";
+print "World\nof\nLox";
+print true;
+print false;
+print nil;
+print 0;
+print -1000;
+print 10 + 10;
+print 10 - 10;
+print 10 * 10;
+print 10 / 10;
 
-var i = 0;
-var d;
-for(i = 0; i < 5; i = i + 1) {
-    if(d == nil) d = {i};
-    else d = {d,i};
-    print d;
+# string
+"Hello";
+print "Hello world";
+print -10;
+print "abc" == "abc";
+print "Concat" + "enate";
+print "Concat to " + 100;
+print "Concat to " + true;
+print "Concat to " + nil;
+
+#variable
+var x = 100 * 4;
+print x;
+var y = -20;
+print y;
+var a = "x * y = " + x * y;
+print a;
+var z;
+print z;
+z = 100;
+print z;
+print ("abc" == "abc"); #should be true
+print ("a"+"b"+"c") == "abc"; #should also be true
+
+# control
+x = 1000;
+y = 100;
+print "case A";
+if(x < y) print "x < y";
+else print "x >= y";
+print "case B";
+x = 0;
+if(x < y) print "x < y";
+else print "x >= y";
+x = y;
+print "case D";
+if(x != y) print "x != y";
+else print "x = y";
+
+# loop
+y = 10;
+x = y - 5;
+print "start while loop...";
+while(x < y){
+    print x;
+    x = x + 1;
 }
+print "...end";
+print "start for loop";
+for(x = 0; x < y; x = x + 1) print x;
+print "...end";
+
+# array
+x = {0,true,"abc",{1,2}};
+print x;
+y = 10;
+z = {y+1,y+2,y+3};
+print z;
+var a = {y};
+print a;
+var c = {};
+print c;
+var d = {y,c,z};
+print d;
+print {10,20,30};
+print {10,20,30,40,50};
+print {y,a,c};

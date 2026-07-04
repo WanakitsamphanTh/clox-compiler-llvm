@@ -208,7 +208,8 @@ InterpretResult runVM(){
 
             case OP_PRINT:
                 value = vmPop();
-                valueToString(value, buffer);
+                memset(buffer,0,256);
+                valueToString(value, buffer, 255);
                 printf("%s\n", buffer);
                 break;
             

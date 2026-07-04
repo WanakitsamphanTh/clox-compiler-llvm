@@ -311,8 +311,8 @@ Expr* parseExpr() { //to be implemented
 
 Expr* parseAssignment(){
     Expr* expr;
-    Expr* left;
-    Expr* right;
+    Expr* left = NULL;
+    Expr* right = NULL;
     Token equal;
 
     expr = parseOr();
@@ -320,21 +320,28 @@ Expr* parseAssignment(){
 
     if(match(TOKEN_EQUAL)){
         left = expr;
-        equal = previous();
-        right = parseAssignment();
-        END_PARSING_IF_ERROR();
-
-        if(expr->type == VAR_EXPR) {
+        if(left->type == VAR_EXPR){
+            right = parseAssignment();
+            END_PARSING_IF_ERROR();
             expr = newExpr(ASSIGNMENT_EXPR);
             expr->body._assign->val = right;
             expr->body._assign->var = left->body._var->name;
+            right = NULL;
+            freeExpr(left);
         } else {
-            freeExpr(right);
             PARSER_ERROR("Invalid assignment target");
         }
+
     }
 
-    end_parsing: RETURN_EXPR(expr);
+    end_parsing: 
+        if(parser.has_error){
+            if(left != expr) freeExpr(left);
+            freeExpr(right);
+            freeExpr(expr);
+            return NULL; 
+        }
+        return expr;
 }
 
 Expr* parseOr(){
@@ -528,7 +535,10 @@ Expr* parseArray(){
             END_PARSING_IF_ERROR();
             
             ArrExpr* tmp = appendArrExpr(expr->body._arr, elem);
-            if(tmp == NULL) goto end_parsing;
+            if(tmp == NULL) {
+                PARSER_ERROR("cannot append array expression (returns NULL)");
+                goto end_parsing;
+            }
             
             elem = NULL;    // transfered ownership
 

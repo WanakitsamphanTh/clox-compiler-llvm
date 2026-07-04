@@ -224,8 +224,10 @@ void compileExpr(Expr* expr){
         case ARR_EXPR:{
             int count = expr->body._arr->count;
             int i;
-            for(i = 0; i < count; i++)
+            for(i = 0; i < count; i++){
                 compileExpr(expr->body._arr->elements[count - i - 1]); //FILO
+                TERMINATE_IF_ERROR();
+            }
             emitBytes(2, OP_ARR, (uint8_t) count);
             break;
         }

@@ -73,7 +73,7 @@ Expr* newExpr(ExprType type){
             expr->body._assign->val = NULL;
             break;
         case ARR_EXPR:
-            expr->body._arr = malloc(sizeof(ARR_EXPR));
+            expr->body._arr = malloc(sizeof(ArrExpr));
             expr->body._arr->elements = NULL;
             expr->body._arr->count = 0;
             break;

@@ -16,5 +16,7 @@ print c;
 var d = {y,c,z};
 print d;
 
-#print {10,20,30,40};
-#print {y,a,c};
+print {10,20,30};
+
+print {10,20,30,40};
+print {y,a,c};

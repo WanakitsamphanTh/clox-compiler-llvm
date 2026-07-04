@@ -8,7 +8,14 @@ This is my project in implementing a compiler and LLVM in C for Lox (from Crafti
 - My CLox features Array.
     - the formal grammar for array is \
      $ array := \{ [expression [, expression]*]? \} $
-- My CLox will have compile-time constant evaluation in which all constant expressions are evaluated and stored constant pool instead of doing it at runtime.
+    - array/string operation
+        - [ ] get/set element
+        - [ ] slice
+        - [ ] binary operation $ in: x, array \rightarrow \{true, false\} $
+        - [ ] binary operation $ +: a, b \mapsto \{a_1,...a_n,b_1,...b_n\}  $
+        - [ ] unary operation $ \text{len}: arr \rightarrow number$
+        - [ ] element-wise comparition `==` and `!=`
+- My CLox will have compile-time constant evaluation in which all constant expressions are evaluated and stored constant pool instead of doing it at runtime. *[ To implement ]*
 
 ## Note
 - Runtime stack and constant pool is too small

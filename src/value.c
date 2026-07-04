@@ -80,45 +80,118 @@ ObjString* concatObjString(const ObjString *s1, const ObjString *s2){
     return str;
 }
 
-void valueToString(Value v, char* buffer){
+/*int valueToString(Value v, char* buffer, int index, int max_length){
+    buffer += index;
     switch(v.type){
         case BOOL_VALUE: 
-            sprintf(buffer, "%s", v.val.b? "true" : "false"); 
-            break;
+            return snprintf(buffer, max_length, "%s", v.val.b? "true" : "false"); 
         case NUMBER_VALUE:
-            sprintf(buffer, "%.8f", v.val.num); 
-            break;
+            return snprintf(buffer, max_length, "%.8f", v.val.num); 
         case NIL_VALUE:
-            sprintf(buffer, "nil"); 
-            break;
+            return snprintf(buffer, max_length, "nil"); 
         case OBJ_VALUE:
             switch(v.val.obj->type){
                 case OBJ_STRING:{
-                    sprintf(buffer, "%s", AS_CSTR(v));
-                    break;
+                    return snprintf(buffer, max_length, "%s", AS_CSTR(v));
                 }
                 case OBJ_ARRAY:{
-                    sprintf(buffer, "{");
+                    int i, length = 0;
+
+                    snprintf(buffer, max_length, "{");
+                    index++; 
+                    length++;
+                    max_length--;
+
                     ObjArray* arr = v.val.obj;
-                    int i, length = 1;
+
                     for(i = 0; i < arr->len; i++){
-                        char tmp[256];
-                        valueToString(arr->elements[i], tmp);
-                        if(length < 200) length += sprintf(buffer+length, "%s,", tmp);
-                        else length += sprintf(buffer+length, "...");
+                        int required_char = valueToString(arr->elements[i], buffer, index, max_length); 
+                        if(required_char > max_length){
+                            length += snprintf(buffer, max_length, "...");
+                        }
+                        else length += required_char;
+                        buffer += length;
+                        max_length -= length;
                     }
+
                     sprintf(buffer+ length - ((length > 1)? 1 : 0), "}");
                     break;
                 }
                 default:
-                    sprintf(buffer, "[Object Instance]");
+                    snprintf(buffer, max_length, "[Object Instance]");
             }
     }
+}*/
+
+int valueToString(Value v, char* buffer, int max_length){
+    char* start = buffer;
+    char* end = buffer + max_length;
+
+    #define WRITE(...) \
+        do { \
+            int n = snprintf(buffer, end - buffer, __VA_ARGS__); \
+            if (n < 0) return -1; \
+            if (n >= end - buffer) return end - start; \
+            buffer += n; \
+        } while(0)
+
+    switch(v.type){
+        case BOOL_VALUE:
+            WRITE("%s", v.val.b ? "true" : "false");
+            break;
+        case NUMBER_VALUE:
+            WRITE("%.8f", v.val.num);
+            break;
+        case NIL_VALUE:
+            WRITE("nil");
+            break;
+
+        case OBJ_VALUE:
+            switch(v.val.obj->type){
+                case OBJ_STRING:
+                    WRITE("%s", AS_CSTR(v));
+                    break;
+                case OBJ_ARRAY: {
+                    ObjArray* arr = (ObjArray*)v.val.obj;
+                    WRITE("{");
+                    for(int i = 0; i < arr->len; i++){
+                        if(i > 0) WRITE(",");
+                        int remaining_before = end - buffer;
+                        int used = valueToString(arr->elements[i], buffer, remaining_before);
+                        if(used < 0) return -1;
+
+                        // if element didn't fully fit, stop and ensure closure
+                        if(used >= remaining_before){
+                            WRITE("...");
+                            break;
+                        }
+                        buffer += used;
+                    }
+
+                    // always try to write closing brace
+                    if(buffer < end){
+                        WRITE("}");
+                    } else {
+                        // fallback: ensure logical correctness even if truncated
+                        buffer = end;
+                    }
+                    break;
+                }
+                default:
+                    WRITE("<Object Instance>");
+            }
+            break;
+    }
+
+    #undef WRITE
+
+    return buffer - start;
 }
 
 ObjString* valueToObjString(Value v){
     static char buffer[256];
-    valueToString(v, buffer);
+    memset(buffer,0,256);
+    valueToString(v, buffer, 255);
     return newObjString(buffer, strlen(buffer), 0);     /* no need for runtime string*/
 }
 

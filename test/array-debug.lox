@@ -1,7 +1,0 @@
-
-var y = true;
-var z = {y, y or false, y and false};
-
-
-var b = {y,z}; # nested array variable error
-print b;
