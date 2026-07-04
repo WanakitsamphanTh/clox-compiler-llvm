@@ -51,6 +51,7 @@ bool compile(const char* source, Chunk* chunk){
         goto compilation_terminated;
     }
 
+    printf("finished parsing\n");
     #ifdef DEBUG_PRINT_AST
     _debugAst(statements);
     #endif
@@ -62,6 +63,7 @@ bool compile(const char* source, Chunk* chunk){
         successful = false;
         goto compilation_terminated;
     }
+    printf("finished compiling\n");
 
     writeChunk(chunk, OP_RETURN);
 
@@ -133,10 +135,10 @@ void compileStatement(Stmt* stmt){
                         
             int else_jmp = emitJump(OP_JMP);
             patchJump(jmp);
-            /*if(stmt->body._if->else_branch){
+            if(stmt->body._if->else_branch){
                 emitByte(OP_POP);
                 compileStatement(stmt->body._if->else_branch); TERMINATE_IF_ERROR();
-            }*/
+            }
             patchJump(else_jmp);
             
             break;

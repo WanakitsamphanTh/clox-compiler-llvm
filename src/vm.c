@@ -100,9 +100,11 @@ InterpretResult runVM(){
                 break;
             case OP_ARR:{
                 uint8_t size = vmReadByte();
+
                 Value* v_arr = malloc(sizeof(Value)*size);
                 uint8_t i;
 
+                // poping value for array
                 for(i = 0; i < size; i++)
                     v_arr[i] = vmPop();
                 
@@ -168,7 +170,9 @@ InterpretResult runVM(){
                 Value b = vmPop();
                 Value a = vmPop();
                 Value c; 
-                if(a.type == OBJ_VALUE  && b.type == OBJ_VALUE){
+                if(a.type == NIL_VALUE && b.type == NIL_VALUE)
+                    c = VALUE_BOOL(true);
+                else if(a.type == OBJ_VALUE  && b.type == OBJ_VALUE){
                     if(a.val.obj->type == OBJ_STRING && b.val.obj->type == OBJ_STRING)
                         c = VALUE_BOOL(strcmp(AS_CSTR(a), AS_CSTR(b)) == 0);
                     else c = VALUE_BOOL(false);
@@ -176,8 +180,7 @@ InterpretResult runVM(){
                     c = VALUE_BOOL(AS_NUM(a) == AS_NUM(b));
                 } else if(a.type == BOOL_VALUE && b.type == BOOL_VALUE){
                     c = VALUE_BOOL(AS_BOOL(a) == AS_BOOL(b));
-                }
-                else {
+                } else {
                     c= VALUE_BOOL(false); 
                 }
                 vmPush(c); 
@@ -213,7 +216,6 @@ InterpretResult runVM(){
             case OP_DEFINE_GLOBAL:{
                 ObjString* name = AS_STR(vmReadConstant());
                 Value init_val = vmPeek(0);
-                valueToString(init_val, buffer);
                 tableSet(&vm.globals, name, init_val);
                 vmPop();
                 break;
@@ -226,8 +228,8 @@ InterpretResult runVM(){
                     RuntimeError("Unknown variable %s\n", name->str);
                     return INTERPRET_RUNTIME_ERROR;
                 }
-                valueToString(val, buffer);
-                vmPush(val);
+                Value copy = val;
+                vmPush(copy);
                 break;
             }
 

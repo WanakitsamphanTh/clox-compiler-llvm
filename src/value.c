@@ -102,7 +102,7 @@ void valueToString(Value v, char* buffer){
                     ObjArray* arr = v.val.obj;
                     int i, length = 1;
                     for(i = 0; i < arr->len; i++){
-                        char tmp[32];
+                        char tmp[256];
                         valueToString(arr->elements[i], tmp);
                         if(length < 200) length += sprintf(buffer+length, "%s,", tmp);
                         else length += sprintf(buffer+length, "...");

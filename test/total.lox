@@ -1,10 +1,9 @@
-var x;
-var y = 0;
+var x = 5;
 
-var str = "Hello";
-
-print str + " " + x + " " + y;
-
-x = 100;
-
-print str + " " + x + " " + y;
+var i = 0;
+var d;
+for(i = 0; i < 5; i = i + 1) {
+    if(d == nil) d = {i};
+    else d = {d,i};
+    print d;
+}

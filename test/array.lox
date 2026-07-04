@@ -9,8 +9,12 @@ print z;
 var a = {y};
 print a;
 
-#var b = {z,y}; # nested array variable error
-#print b;
 
-var c = {}; # blank array error at compile time
+var c = {};
 print c;
+
+var d = {y,c,z};
+print d;
+
+#print {10,20,30,40};
+#print {y,a,c};
