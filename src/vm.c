@@ -9,7 +9,7 @@ VM vm;
 
 static void freeObjects();
 
-static uint8_t readByte();
+static uint8_t vmReadByte();
 static Value vmReadConstant();
 static uint16_t vmReadShort();
 static void resetStack();
@@ -80,7 +80,7 @@ InterpretResult runVM(){
     char buffer[256];
 
     while(1){
-        instruction = readByte();
+        instruction = vmReadByte();
         switch(instruction){
             case OP_CONST:
                 value = vmReadConstant();
@@ -98,6 +98,20 @@ InterpretResult runVM(){
             case OP_NIL: 
                 vmPush(VALUE_NIL);
                 break;
+            case OP_ARR:{
+                uint8_t size = vmReadByte();
+                Value* v_arr = malloc(sizeof(Value)*size);
+                uint8_t i;
+
+                for(i = 0; i < size; i++)
+                    v_arr[i] = vmPop();
+                
+                vmPush(VALUE_OBJ(makeObjArray(size, v_arr)));
+
+                free(v_arr);
+                break;
+            }
+
             case OP_NEGATE:
                 if(vmPeek(0).type != NUMBER_VALUE){
                     RuntimeError("Operand must be a number.");
@@ -248,7 +262,7 @@ Value vmPop(){
     return *(--vm.stackTop);
 }
 
-uint8_t readByte(){
+uint8_t vmReadByte(){
     return *(vm.ip++);
 }
 
@@ -258,7 +272,7 @@ uint16_t vmReadShort(){
 }
 
 Value vmReadConstant() {
-    Value value = vm.chunk->constants.values[readByte()];
+    Value value = vm.chunk->constants.values[vmReadByte()];
     return value;
 }
 

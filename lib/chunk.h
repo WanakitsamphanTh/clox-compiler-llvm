@@ -31,6 +31,9 @@ typedef enum {
     OP_GREATER_EQ,
     OP_EQ,
 
+    // Array
+    OP_ARR,
+
     // control
     OP_JMP,
     OP_JIF, // jump if false

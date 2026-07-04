@@ -1,0 +1,16 @@
+var x = {0,true,"abc",{1,2}};
+print x;
+
+var y = 10;
+
+var z = {y+1,y+2,y+3};
+print z;
+
+var a = {y};
+print a;
+
+#var b = {z,y}; # nested array variable error
+#print b;
+
+var c = {}; # blank array error at compile time
+print c;

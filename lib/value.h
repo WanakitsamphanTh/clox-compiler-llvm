@@ -6,6 +6,7 @@
 typedef enum {
     OBJ_INSTANCE,
     OBJ_STRING,
+    OBJ_ARRAY,
     OBJ_FN
 } ObjType;
 
@@ -19,18 +20,6 @@ typedef struct _Obj {
 } Obj;
 
 Obj* AllocateObj(ObjType type, void (*destructor)(void*), size_t size);
-
-typedef struct {    
-    Obj obj;
-    size_t len;     /*len = strlen(str) (not including '\0')*/
-    uint32_t hash;
-    char str[];
-} ObjString;
-
-uint32_t hashString(const char*, int);
-ObjString* makeObjString(const char*, int);
-ObjString* newObjString(const char*, size_t, uint32_t);
-ObjString* concatObjString(const ObjString*, const ObjString*);
 
 typedef enum {
     NIL_VALUE = 0,
@@ -63,7 +52,6 @@ void writeValueArray(ValueArray* array, Value value);
 void freeValueArray(ValueArray* array);
 
 void valueToString(Value, char*);
-ObjString* valueToObjString(Value);
 
 void encodeString(char*, const char*);
 char* decodeString(char*);
@@ -85,12 +73,36 @@ bool compareValue(Value, Value);
 #define AS_NUM(value) ((value).val.num)
 #define AS_OBJ(value) ((value).val.obj)
 #define AS_STR(value) ((ObjString*) (value).val.obj)
+#define AS_ARRAY(value) ((ObjArray*) (value).val.obj)
 #define AS_CSTR(value) AS_STR(value)->str
 
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
 #define IS_STR(value) isObjType(value, OBJ_STRING)
+#define IS_ARRAY(value) isObjType(value, OBJ_ARRAY)
 
 #define IS_TRUTHY(value) (((value).type == BOOL_VALUE) && ((value).val.b == true))
 #define IS_FALSY(value) !IS_TRUTHY(value)
+
+typedef struct {    
+    Obj obj;
+    size_t len;     /*len = strlen(str) (not including '\0')*/
+    uint32_t hash;
+    char str[];
+} ObjString;
+
+uint32_t hashString(const char*, int);
+ObjString* makeObjString(const char*, int);
+ObjString* newObjString(const char*, size_t, uint32_t);
+ObjString* concatObjString(const ObjString*, const ObjString*);
+ObjString* valueToObjString(Value);
+
+typedef struct {
+    Obj obj;
+    size_t len;
+    Value elements[]
+} ObjArray;
+
+ObjArray* makeObjArray(size_t, Value*);
+ObjArray* concatObjArray(const ObjArray*, const ObjArray*);
 
 #endif

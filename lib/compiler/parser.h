@@ -48,6 +48,7 @@ static Expr* parseTerm();
 static Expr* parseFactor();
 static Expr* parseUnary();
 static Expr* parsePrimary();
+static Expr* parseArray();
 static Expr* parseGroup();
 static Expr* parseLiteral();
 static Expr* parseVarExpr();

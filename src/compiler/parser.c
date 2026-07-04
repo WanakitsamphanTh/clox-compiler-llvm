@@ -509,10 +509,41 @@ Expr* parsePrimary(){
     }
     else if(match(TOKEN_NUMBER, TOKEN_STRING, TOKEN_TRUE, TOKEN_FALSE, TOKEN_NIL)){
         return parseLiteral();
+    } else if(match(TOKEN_LEFT_BRACE)){
+        return parseArray();
     } else {
         PARSER_ERROR("Invalid token");
         return NULL;
     }
+}
+
+Expr* parseArray(){
+    Expr* elem = NULL;
+    Expr* expr = newExpr(ARR_EXPR); 
+    END_PARSING_IF_ERROR();
+
+    if(!check(TOKEN_RIGHT_BRACE))
+        for(;;){
+            elem = parseExpr();
+            END_PARSING_IF_ERROR();
+            
+            ArrExpr* tmp = appendArrExpr(expr->body._arr, elem);
+            if(tmp == NULL) goto end_parsing;
+            
+            elem = NULL;    // transfered ownership
+
+            if(!match(TOKEN_COMMA)) break;
+        }
+
+    consume(TOKEN_RIGHT_BRACE, "Expect closing '}'");
+    END_PARSING_IF_ERROR();
+
+    end_parsing:
+        if(parser.has_error){
+            freeExpr(elem);
+            freeExpr(expr);
+        }
+        return expr;
 }
 
 Expr* parseGroup(){

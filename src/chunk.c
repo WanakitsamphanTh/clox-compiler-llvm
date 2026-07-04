@@ -6,6 +6,7 @@
 static int simpleInstruction(const char*, int);
 static int jumpInstruction(const char*, int, const Chunk*, int);
 static int constantInstruction(const char*, const Chunk*, int);
+static int arrayInstruction(const char*, const Chunk*, int);
 
 Chunk newChunk() {
     Chunk chunk = {0,0,NULL, newValueArray()};
@@ -65,6 +66,8 @@ int disassembleInstruction(const Chunk* chunk, int offset){
             return simpleInstruction("OP_TRUE", offset);
         case OP_FALSE:
             return simpleInstruction("OP_FALSE", offset);
+        case OP_ARR:
+            return arrayInstruction("OP_ARR", chunk, offset);
            
         case OP_AND: 
             return simpleInstruction("OP_AND", offset);
@@ -152,4 +155,9 @@ int jumpInstruction(const char* instruction, int sgn, const Chunk* chunk, int of
     uint16_t jmp = (uint16_t)(chunk->code[offset + 1] << 8) | chunk->code[offset + 2] & 0xffff;
     printf("%-16s %+04d -> %04d\n", instruction, sgn * jmp, offset + 3 + sgn * jmp);
     return offset + 3;
+}
+
+static int arrayInstruction(const char* instruction, const Chunk* chunk, int offset){
+    printf("%-16s %04d\n", instruction, chunk->code[offset + 1]);
+    return offset + 2;
 }

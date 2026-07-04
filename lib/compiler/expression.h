@@ -15,6 +15,7 @@ typedef enum {
     UNARY_EXPR,
     VAR_EXPR,
     ASSIGNMENT_EXPR,
+    ARR_EXPR
 } ExprType;
 
 typedef struct {
@@ -45,6 +46,11 @@ typedef struct {
     Expr* val;
 } AssignmentExpr;
 
+typedef struct {
+    int count;
+    Expr** elements;
+} ArrExpr;
+
 struct _expression {
     ExprType type;
     union {
@@ -54,11 +60,14 @@ struct _expression {
         VarExpr* _var;  
         GroupExpr* _group;    
         AssignmentExpr* _assign;
+        ArrExpr* _arr;
     } body;
 };
 
 Expr* newExpr(ExprType);
 void freeExpr(Expr*);
 bool tokenToValue(Token token, Value* val_ptr);
+ArrExpr* appendArrExpr(ArrExpr*, Expr*);
+bool isConstantExpr(const Expr*);
 
 #endif

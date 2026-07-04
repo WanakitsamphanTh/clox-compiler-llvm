@@ -97,6 +97,19 @@ void valueToString(Value v, char* buffer){
                     sprintf(buffer, "%s", AS_CSTR(v));
                     break;
                 }
+                case OBJ_ARRAY:{
+                    sprintf(buffer, "{");
+                    ObjArray* arr = v.val.obj;
+                    int i, length = 1;
+                    for(i = 0; i < arr->len; i++){
+                        char tmp[32];
+                        valueToString(arr->elements[i], tmp);
+                        if(length < 200) length += sprintf(buffer+length, "%s,", tmp);
+                        else length += sprintf(buffer+length, "...");
+                    }
+                    sprintf(buffer+ length - ((length > 1)? 1 : 0), "}");
+                    break;
+                }
                 default:
                     sprintf(buffer, "[Object Instance]");
             }
@@ -175,4 +188,24 @@ bool compareValue(Value v1, Value v2){
     if(v1.type == BOOL_VALUE) return v1.val.b == v2.val.b;
     if(v1.type == NIL_VALUE) return true;
     return false;
+}
+
+ObjArray* makeObjArray(size_t len, Value* v_arr){
+    ObjArray* arr = AllocateObj(OBJ_ARRAY, NULL, sizeof(ObjArray) + sizeof(Value) * len);
+    int i;
+    for(i = 0; i < len; i++)
+        arr->elements[i] = v_arr[i];
+    arr->len = len;
+    return arr;
+}
+
+ObjArray* concatObjArray(const ObjArray* a, const ObjArray* b){
+    ObjArray* arr = AllocateObj(OBJ_ARRAY, NULL, sizeof(ObjArray) + sizeof(Value) * (a->len + b->len));
+    int i, j;
+    for(i = 0; i < a->len; i++)
+        arr->elements[i] = a->elements[i];
+    for(j = 0; j < b->len; j++)
+        arr->elements[i+j] = b->elements[j];
+    arr->len = a->len + b->len;
+    return arr;
 }

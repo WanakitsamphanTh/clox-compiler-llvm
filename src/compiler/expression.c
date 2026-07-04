@@ -72,6 +72,11 @@ Expr* newExpr(ExprType type){
             expr->body._assign->var.type = TOKEN_NONE;
             expr->body._assign->val = NULL;
             break;
+        case ARR_EXPR:
+            expr->body._arr = malloc(sizeof(ARR_EXPR));
+            expr->body._arr->elements = NULL;
+            expr->body._arr->count = 0;
+            break;
         default:
             free(expr);
             return NULL;
@@ -104,8 +109,56 @@ void freeExpr(Expr *expr){
         case ASSIGNMENT_EXPR:
             freeExpr(expr->body._assign->val);
             free(expr->body._assign);
-            break;    
+            break;   
+        case ARR_EXPR:{
+            int i = 0;
+            for(i = 0; i < expr->body._arr->count; i++) 
+                freeExpr(expr->body._arr->elements[i]);
+            free(expr->body._arr->elements);
+            free(expr->body._arr);
+            break; 
+        }
     }
 
     free(expr);
+}
+
+ArrExpr* appendArrExpr(ArrExpr* expr, Expr* elem){
+    Expr** new = realloc(expr->elements, sizeof(Expr*) * (expr->count+1));
+    if(new == NULL) return NULL;
+    new[expr->count++] = elem;
+    expr->elements = new;
+    return expr;
+}
+
+bool isConstantExpr(const Expr* expr){
+    switch(expr->type){
+        case BINARY_EXPR:
+            return isConstantExpr(expr->body._bin->left) && isConstantExpr(expr->body._bin->right);
+        case UNARY_EXPR:
+            return isConstantExpr(expr->body._unary->right);
+        case GROUP_EXPR:
+            return isConstantExpr(expr->body._group->expr);
+        case ARR_EXPR:{
+            int i;
+            for(i = 0; i < expr->body._arr->count; i++)
+                if(!isConstantExpr(expr->body._arr->elements[i])) 
+                    return false;
+            return true;
+        }
+        case ASSIGNMENT_EXPR:{ /* determined by rvalue*/
+            return isConstantExpr(expr->body._assign->val);
+        }
+
+        /* literal are constant */
+        case LITERAL_EXPR:
+            return true;
+
+        /* variable involved -> not constant*/
+        case VAR_EXPR:
+            return false;
+            break;
+    }
+
+    return false; /* unknown variable can not be fast-evaluated hence not constant*/
 }

@@ -211,12 +211,20 @@ void compileExpr(Expr* expr){
             compileExpr(expr->body._unary->right); TERMINATE_IF_ERROR();
             compileOperator(expr->body._unary->op.type, expr->type); TERMINATE_IF_ERROR();
             break;
-        case ASSIGNMENT_EXPR: { /* to implement*/
+        case ASSIGNMENT_EXPR: { 
             compileExpr(expr->body._assign->val); TERMINATE_IF_ERROR();
             const char* name = expr->body._assign->var.start;
             int len = expr->body._assign->var.length;
             uint8_t ref = makeIdentifierConstant(name, len);
             emitBytes(2, OP_STORE_GLOBAL, ref);
+            break;
+        }
+        case ARR_EXPR:{
+            int count = expr->body._arr->count;
+            int i;
+            for(i = 0; i < count; i++)
+                compileExpr(expr->body._arr->elements[count - i - 1]); //FILO
+            emitBytes(2, OP_ARR, (uint8_t) count);
             break;
         }
     }
@@ -475,6 +483,14 @@ static bool _debugExpr(Expr* expr, int indent){
             _putIndent(indent); printf("Value: \n");
             _debugExpr(expr->body._assign->val, indent+1);
             free(var_name);
+            break;
+        case ARR_EXPR:
+            _putIndent(indent++); printf("Array of [%d] elements\n", expr->body._arr->count);
+            int i;
+            for(i = 0; i < expr->body._arr->count; i++){
+                _putIndent(indent); printf("[%d] ", i);
+                                    _debugExpr(expr->body._unary->right, 0);
+            }
             break;
     }
 
