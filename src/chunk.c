@@ -101,6 +101,9 @@ int disassembleInstruction(const Chunk* chunk, int offset){
         
         case OP_JIF:
             return jumpInstruction("OP_JIF", 1, chunk, offset);
+        
+        case OP_LOOP:
+            return jumpInstruction("OP_LOOP", -1, chunk, offset);
             
         case OP_PRINT:
             return simpleInstruction("OP_PRINT", offset);
@@ -130,7 +133,7 @@ int constantInstruction(const char* instruction, const Chunk* chunk, int offset)
     Value value = chunk->constants.values[constant];
     char buffer[256];
     valueToString(value, buffer);
-    printf("%-16s %4d\t", instruction, constant);
+    printf("%-16s %04d ", instruction, constant);
     if(value.type == OBJ_VALUE){
         if(value.val.obj->type == OBJ_STRING){
             char tmp[256];
@@ -147,6 +150,6 @@ int constantInstruction(const char* instruction, const Chunk* chunk, int offset)
 
 int jumpInstruction(const char* instruction, int sgn, const Chunk* chunk, int offset){
     uint16_t jmp = (uint16_t)(chunk->code[offset + 1] << 8) | chunk->code[offset + 2] & 0xffff;
-    printf("%-16s %4d to %4d\n", instruction, offset, offset + 3 + sgn * jmp);
+    printf("%-16s %+04d -> %04d\n", instruction, sgn * jmp, offset + 3 + sgn * jmp);
     return offset + 3;
 }

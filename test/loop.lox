@@ -1,0 +1,16 @@
+var x;
+var y = 10;
+
+x = y - 5;
+
+print "start while loop...";
+while(x < y){
+    print x;
+    x = x + 1;
+}
+print "...end";
+
+print "start for loop";
+for(x = 0; x < y; x = x + 1) print x;
+
+print "...end";

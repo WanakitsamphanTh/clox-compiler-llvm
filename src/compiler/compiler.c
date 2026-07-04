@@ -112,8 +112,9 @@ void compileStatement(Stmt* stmt){
 
         case VAR_DECL:
             /* emit rvalue*/
-            if(stmt->body._var_decl->init_expr)
-                compileExpr(stmt->body._var_decl->init_expr);
+            if(stmt->body._var_decl->init_expr){
+                compileExpr(stmt->body._var_decl->init_expr); TERMINATE_IF_ERROR();
+            }
             else emitByte(OP_NIL);
 
             /*define variable*/
@@ -125,24 +126,45 @@ void compileStatement(Stmt* stmt){
             break;
         
         case IF_STMT:{
-            compileExpr(stmt->body._if->condition);
+            compileExpr(stmt->body._if->condition); TERMINATE_IF_ERROR();
             int jmp = emitJump(OP_JIF);
             emitByte(OP_POP);
-            compileStatement(stmt->body._if->then_branch);
+            compileStatement(stmt->body._if->then_branch); TERMINATE_IF_ERROR();
                         
             int else_jmp = emitJump(OP_JMP);
             patchJump(jmp);
-            if(stmt->body._if->else_branch){
+            /*if(stmt->body._if->else_branch){
                 emitByte(OP_POP);
-                compileStatement(stmt->body._if->else_branch);
-            }
+                compileStatement(stmt->body._if->else_branch); TERMINATE_IF_ERROR();
+            }*/
             patchJump(else_jmp);
             
             break;
         }
+
+        case WHILE_STMT: {
+            int loopStart = currentChunk()->count;
+            compileExpr(stmt->body._while->condition); TERMINATE_IF_ERROR();
+
+            int exitJump = emitJump(OP_JIF);
+            emitByte(OP_POP);
+
+            compileStatement(stmt->body._while->body); TERMINATE_IF_ERROR();
+
+            if(stmt->body._while->increment != NULL) {
+                compileStatement(stmt->body._while->increment);
+                TERMINATE_IF_ERROR();
+            }
+
+            emitLoop(loopStart);
+
+            patchJump(exitJump);
+            emitByte(OP_POP);
+            break;
+        }
         
-            default:
-            COMPILE_ERROR("Unimplemented statement");
+        default:
+            COMPILE_ERROR("Unimplemented statement %d", stmt->type);
     }
 
     terminate_compilation:
@@ -291,6 +313,18 @@ int emitJump(uint8_t op){
     emitByte(op);
     emitBytes(2,0xff,0xff);
     return currentChunk()->count - 2;
+}
+
+void emitLoop(int loop_start){
+    emitByte(OP_LOOP);
+
+    int offset = currentChunk()->count - loop_start + 2;
+    if (offset > UINT16_MAX) {
+        COMPILE_ERROR("Loop body too large.");
+        return;
+    }
+    emitByte((offset >> 8) & 0xff);
+    emitByte(offset & 0xff);
 }
 
 void patchJump(int offset){

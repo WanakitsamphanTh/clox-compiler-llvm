@@ -220,6 +220,8 @@ Stmt* parseWhile(){
 
     stmt->body._while->body = parseStmt();
     END_PARSING_IF_ERROR();
+    
+    stmt->body._while->increment = NULL;
 
     end_parsing:
         RETURN_STMT(stmt);

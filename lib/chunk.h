@@ -34,6 +34,7 @@ typedef enum {
     // control
     OP_JMP,
     OP_JIF, // jump if false
+    OP_LOOP,
 
     OP_POP,
     OP_DEFINE_GLOBAL,

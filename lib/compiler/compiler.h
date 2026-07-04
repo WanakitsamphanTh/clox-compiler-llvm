@@ -24,6 +24,7 @@ static uint8_t makeIdentifierConstant(const char*, int);
 static void defineVariable(uint8_t);
 static int emitJump(uint8_t);
 static void patchJump(int);
+static void emitLoop(int);
 
 #define emitByte(b) emitBytes(1, b)
 

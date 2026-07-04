@@ -183,11 +183,18 @@ InterpretResult runVM(){
                 break;
             }
 
+            case OP_LOOP:{
+                uint16_t offset = vmReadShort();
+                vm.ip -= offset;
+                break;
+            }
+
             case OP_PRINT:
                 value = vmPop();
                 valueToString(value, buffer);
                 printf("%s\n", buffer);
                 break;
+            
 
             case OP_DEFINE_GLOBAL:{
                 ObjString* name = AS_STR(vmReadConstant());
