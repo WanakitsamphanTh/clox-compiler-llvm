@@ -1,6 +1,7 @@
 #include "chunk.h"
 #include <stddef.h>
 #include <stdio.h>
+#include <string.h>   
 #include "memory.h"
 
 static int simpleInstruction(const char*, int);

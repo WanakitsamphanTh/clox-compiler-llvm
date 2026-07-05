@@ -2,6 +2,7 @@
 #include "compiler/scanner.h"
 #include "compiler/token.h"
 #include "compiler/parser.h"
+#include "compiler/control_resolver.h"
 #include "vm.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,6 +58,8 @@ bool compile(const char* source, Chunk* chunk){
     #endif
 
     // Compilation
+    initLoopStack();
+
     compileStatementList(&statements);
     if(compile_error){
         fprintf(stderr, "Compilation error: %s\n", compile_error_msg);
@@ -74,6 +77,8 @@ bool compile(const char* source, Chunk* chunk){
         #endif
         freeStmtList(&statements); 
         freeTokenList(&token_list);
+
+        freeLoopStack();
 
     return successful;   
 }
@@ -133,38 +138,66 @@ void compileStatement(Stmt* stmt){
             emitByte(OP_POP);
             compileStatement(stmt->body._if->then_branch); TERMINATE_IF_ERROR();
                         
-            int else_jmp = emitJump(OP_JMP);
+            int else_jmp = 0;
+            if(stmt->body._if->else_branch) else_jmp = emitJump(OP_JMP);
             patchJump(jmp);
             if(stmt->body._if->else_branch){
                 emitByte(OP_POP);
                 compileStatement(stmt->body._if->else_branch); TERMINATE_IF_ERROR();
+                patchJump(else_jmp);
             }
-            patchJump(else_jmp);
             
             break;
         }
 
-        case WHILE_STMT: {
-            int loopStart = currentChunk()->count;
+       case WHILE_STMT: {
+            int loop_start = currentChunk()->count;
+            pushLoop();
+            
+            // condition
             compileExpr(stmt->body._while->condition); TERMINATE_IF_ERROR();
-
-            int exitJump = emitJump(OP_JIF);
+            int exit_jump = emitJump(OP_JIF);
             emitByte(OP_POP);
 
+            // loop body
             compileStatement(stmt->body._while->body); TERMINATE_IF_ERROR();
+
+            Loop top_loop = popLoop();
+
+            // latch
+            for(int i = 0; i < top_loop.skip_list.count; i++)
+                patchJump(top_loop.skip_list.jumps[i]);
 
             if(stmt->body._while->increment != NULL) {
                 compileStatement(stmt->body._while->increment);
                 TERMINATE_IF_ERROR();
             }
 
-            emitLoop(loopStart);
+            // loop
+            emitLoop(loop_start);
 
-            patchJump(exitJump);
-            emitByte(OP_POP);
+            // loop exit
+            for(int i = 0; i < top_loop.break_list.count; i++)
+                patchJump(top_loop.break_list.jumps[i]);
+
+            patchJump(exit_jump);
+
+            freeLoop(&top_loop);
             break;
         }
         
+        case BREAK_STMT:{
+            int jump = emitJump(OP_JMP);
+            loopAddBreak(topLoop(), jump);
+            break;
+        }
+
+        case SKIP_STMT:{
+            int jump = emitJump(OP_JMP);
+            loopAddSkip(topLoop(), jump);
+            break;
+        }
+
         default:
             COMPILE_ERROR("Unimplemented statement %d", stmt->type);
     }
@@ -405,10 +438,10 @@ static bool _debugStmt(Stmt* stmt, int indent){
             _debugStmt(stmt->body._while->increment, indent + 1);
             break;
         case BREAK_STMT: 
-            _putIndent(indent);  printf("Break statement\n");
+            _putIndent(indent);  printf("Break\n");
             break;
         case SKIP_STMT: 
-            _putIndent(indent);  printf("Skip statement\n");
+            _putIndent(indent);  printf("Skip\n");
             break;
         case BLOCK_STMT: 
             _putIndent(indent);  printf("Block:\n");
