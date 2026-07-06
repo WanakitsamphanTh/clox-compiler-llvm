@@ -1,5 +1,5 @@
-#ifndef CONTROL_RESOLVER_H
-#define CONTROL_RESOLVER_H
+#ifndef RESOLVE_LOOP_H
+#define RESOLVE_LOOP_H
 #include "common.h"
 
 typedef struct {
@@ -20,13 +20,11 @@ typedef struct {
     Loop *loops;
 } LoopStack;
 
-extern LoopStack loop_stack;
-
-void initLoopStack();
-void freeLoopStack();
-void pushLoop();
-Loop popLoop();
-Loop* topLoop();
+void initLoopStack(LoopStack*);
+void freeLoopStack(LoopStack*);
+void pushLoop(LoopStack*);
+Loop popLoop(LoopStack*);
+Loop* topLoop(LoopStack*);
 
 void loopAddBreak(Loop*, int);
 void loopAddSkip(Loop*, int);

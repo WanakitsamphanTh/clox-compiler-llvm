@@ -78,3 +78,55 @@ print d;
 print {10,20,30};
 print {10,20,30,40,50};
 print {y,a,c};
+
+# loop
+y = 10;
+
+x = y - 5;
+
+print "start while loop...";
+while(x < y){
+    print x;
+    x = x + 1;
+}
+print "...end";
+
+print "start for loop";
+for(x = 0; x < y; x = x + 1) print x;
+
+print "...end";
+
+x = 0;
+
+print "=====test break with while=====";
+while(x < 1000){
+    if(x == 100) break;
+    print "x = " + x;
+    x = x + 10;
+}
+print "exited when x = " + x;
+
+print "=====test break with for=====";
+for(x = 0; x < 1000; x = x + 10){
+    if(x == 100) break;
+    print "x = " + x;
+}
+print "exited when x = " + x;
+
+print "=====test skip with while=====";
+x = 0;
+while(x < 50){
+    x = x + 5;
+    if(x == 10 or x == 20 or x == 30 or x == 40) {
+        skip;
+    }
+    print x;
+}
+print "exited when x = " + x;
+
+print "=====test skip with for=====";
+for(x = 0; x < 50; x = x + 5){
+    if(x == 10 or x == 20 or x == 30 or x == 40) skip;
+    print x;
+}
+print "exited when x = " + x;

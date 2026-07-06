@@ -21,6 +21,7 @@ This is my project in implementing a compiler and LLVM in C for Lox (from Crafti
 - Runtime stack and constant pool is too small
 - I should optimize the loop in `addConstant()`
 - I may also need semantic resolver to calculate right jump offset for `break` and `skip` statements
+- I should add constant folding in my compiler
 - I'm thinking about the better way to implement array at runtime
 
 

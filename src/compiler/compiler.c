@@ -2,19 +2,30 @@
 #include "compiler/scanner.h"
 #include "compiler/token.h"
 #include "compiler/parser.h"
-#include "compiler/control_resolver.h"
+#include "compiler/resolve_loop.h"
+#include "compiler/resolve_scope.h"
 #include "vm.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 
+#define COMPILE_ERROR(...) do{ compile_error = true; sprintf(compile_error_msg, __VA_ARGS__); }while(false)
 #define _debugAst(stmt_list) _debugStmtList(stmt_list, 0);
 
-Chunk* compilingChunk;
 bool compile_error = false;
 char compile_error_msg[256];
 
-#define COMPILE_ERROR(...) do{ compile_error = true; sprintf(compile_error_msg, __VA_ARGS__); }while(false)
+Compiler compiler;
+
+void initCompiler(){
+    initLoopStack(&compiler.loops);
+    initResolver(&compiler.resolver);
+}
+
+void freeCompiler(){
+    freeLoopStack(&compiler.loops);
+    freeResolver(&compiler.resolver);
+}
 
 bool compile(const char* source, Chunk* chunk){
     int line = -1;
@@ -27,9 +38,6 @@ bool compile(const char* source, Chunk* chunk){
 
     // Scan and tokenization
     initScanner(source);
-
-    //set compiling chunk
-    compilingChunk = chunk;
 
     //scanning token
     while(1){
@@ -58,8 +66,14 @@ bool compile(const char* source, Chunk* chunk){
     #endif
 
     // Compilation
-    initLoopStack();
+    // initialize compiler
+    initCompiler();
+    compiler.compilingChunk = chunk;
 
+    // Scope resolver and name binding
+    resolve(&statements);
+
+    // bytecode emission
     compileStatementList(&statements);
     if(compile_error){
         fprintf(stderr, "Compilation error: %s\n", compile_error_msg);
@@ -77,8 +91,7 @@ bool compile(const char* source, Chunk* chunk){
         #endif
         freeStmtList(&statements); 
         freeTokenList(&token_list);
-
-        freeLoopStack();
+        freeCompiler();
 
     return successful;   
 }
@@ -124,7 +137,6 @@ void compileStatement(Stmt* stmt){
             }
             else emitByte(OP_NIL);
 
-            /*define variable*/
             const char* name = stmt->body._var_decl->name.start;
             int length = stmt->body._var_decl->name.length;
             char* lexeme = getLexeme(stmt->body._var_decl->name);
@@ -152,7 +164,7 @@ void compileStatement(Stmt* stmt){
 
        case WHILE_STMT: {
             int loop_start = currentChunk()->count;
-            pushLoop();
+            pushLoop(&compiler.loops);
             
             // condition
             compileExpr(stmt->body._while->condition); TERMINATE_IF_ERROR();
@@ -162,7 +174,7 @@ void compileStatement(Stmt* stmt){
             // loop body
             compileStatement(stmt->body._while->body); TERMINATE_IF_ERROR();
 
-            Loop top_loop = popLoop();
+            Loop top_loop = popLoop(&compiler.loops);
 
             // latch
             for(int i = 0; i < top_loop.skip_list.count; i++)
@@ -188,13 +200,13 @@ void compileStatement(Stmt* stmt){
         
         case BREAK_STMT:{
             int jump = emitJump(OP_JMP);
-            loopAddBreak(topLoop(), jump);
+            loopAddBreak(topLoop(&compiler.loops), jump);
             break;
         }
 
         case SKIP_STMT:{
             int jump = emitJump(OP_JMP);
-            loopAddSkip(topLoop(), jump);
+            loopAddSkip(topLoop(&compiler.loops), jump);
             break;
         }
 
@@ -269,6 +281,7 @@ void compileExpr(Expr* expr){
     terminate_compilation:
         return;
 }
+
 
 void compileOperator(TokenType op, ExprType expr_type){
     if(compile_error) return;
@@ -385,7 +398,7 @@ void patchJump(int offset){
 }
 
 Chunk* currentChunk(){
-    return compilingChunk;
+    return compiler.compilingChunk;
 }
 
 bool _debugStmtList(StmtList stmts, int indent){
@@ -532,4 +545,8 @@ static bool _debugExpr(Expr* expr, int indent){
     }
 
     return true;
+}
+
+void resolve(StmtList* stmt){
+
 }

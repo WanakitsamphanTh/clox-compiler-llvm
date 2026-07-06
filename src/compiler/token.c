@@ -1,12 +1,12 @@
 #include "compiler/token.h"
 #include <stdlib.h>
+#include <string.h>
 
 char* getLexeme(Token token){
     int i;
     char* dest = malloc(token.length + 1);
-    for(i = 0; i < token.length; i++) 
-        dest[i] = *(token.start + i);
-    dest[i] = '\0';
+    memcpy(dest, token.start, token.length);
+    dest[token.length] = '\0';
     return dest;
 }
 

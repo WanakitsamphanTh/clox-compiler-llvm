@@ -2,6 +2,7 @@
 #define EXPRESSION_H
 
 #include "compiler/token.h"
+#include "compiler/resolve_scope.h"
 #include "common.h"
 #include "value.h"
 
@@ -35,6 +36,7 @@ typedef struct {
 
 typedef struct {
     Token name;
+    Symbol* symbol;
 } VarExpr;
 
 typedef struct {
