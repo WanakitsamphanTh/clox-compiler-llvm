@@ -90,12 +90,16 @@ int disassembleInstruction(const Chunk* chunk, int offset){
         case OP_POP:
             return simpleInstruction("OP_POP", offset);
 
-        case OP_DEFINE_GLOBAL:
-            return constantInstruction("OP_DEFINE_GLOBAL", chunk, offset);
-        case OP_LOAD_GLOBAL:
-            return constantInstruction("OP_LOAD_GLOBAL", chunk, offset);
-        case OP_STORE_GLOBAL:
-            return constantInstruction("OP_STORE_GLOBAL", chunk, offset);
+        case OP_DEFINE_GLOB:
+            return constantInstruction("OP_DEFINE_GLOB", chunk, offset);
+        case OP_LOAD_GLOB:
+            return constantInstruction("OP_LOAD_GLOB", chunk, offset);
+        case OP_STORE_GLOB:
+            return constantInstruction("OP_STORE_GLOB", chunk, offset);
+        case OP_LOAD_LOC:
+            return constantInstruction("OP_LOAD_LOC", chunk, offset);
+        case OP_STORE_LOC:
+            return constantInstruction("OP_STORE_LOC", chunk, offset);
 
         case OP_CONST:
             return constantInstruction("OP_CONST", chunk, offset);

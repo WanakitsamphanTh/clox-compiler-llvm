@@ -40,9 +40,12 @@ typedef enum {
     OP_LOOP,
 
     OP_POP,
-    OP_DEFINE_GLOBAL,
-    OP_LOAD_GLOBAL,
-    OP_STORE_GLOBAL,
+    OP_DEFINE_GLOB,
+    OP_LOAD_GLOB,
+    OP_STORE_GLOB,
+
+    OP_LOAD_LOC,
+    OP_STORE_LOC,
 
     OP_PRINT
 } OpCode;

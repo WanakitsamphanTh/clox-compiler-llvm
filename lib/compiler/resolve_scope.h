@@ -25,6 +25,7 @@ typedef struct _Scope {
     Symbol **locals;
     size_t symbol_count;
     size_t capacity;
+    int depth;
 } Scope;
 
 typedef struct {
@@ -45,6 +46,7 @@ typedef struct {
     Scope *global;
     Scope *current;
     int depth;
+    int slot;
 
     char error_msg[256];
     bool has_error;

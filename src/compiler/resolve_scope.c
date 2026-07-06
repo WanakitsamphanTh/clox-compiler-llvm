@@ -10,6 +10,7 @@ void initResolver(ScopeResolver* resolver){
     resolver->global = newScope(NULL, 0);
     resolver->current = resolver->global;
     resolver->has_error = false;
+    resolver->slot = 0;
 }
 
 void freeScopesAndSymbols(){
@@ -19,8 +20,9 @@ void freeScopesAndSymbols(){
 
 Symbol* newSymbol(SymbolType type, const char* name, const size_t len, int depth, int slot){
     Symbol* sym = malloc(sizeof(Symbol) + len + 1);
-    struct SymbolNode* node = malloc(sizeof(struct SymbolNode));
+    if(sym == NULL) return NULL;
 
+    struct SymbolNode* node = malloc(sizeof(struct SymbolNode));
     if(node == NULL)  return NULL;
 
     sym->depth = depth;
@@ -39,11 +41,16 @@ Symbol* newSymbol(SymbolType type, const char* name, const size_t len, int depth
 
 Scope* newScope(Scope* parent, int depth){
     Scope* scope = malloc(sizeof(Scope));
+    if(scope == NULL)  return NULL;
+
     struct ScopeNode* node = malloc(sizeof(struct ScopeNode));
+    if(node == NULL)  return NULL;
 
     scope->capacity = 0;
     scope->symbol_count = 0;
     scope->locals = NULL;
+    scope->parent = parent;
+    scope->depth = depth;
 
     node->scope = scope;
     node->next = all_scopes.head;
@@ -82,7 +89,12 @@ void freeSymbols(SymbolPool* symbols){
 
 void beginScope(ScopeResolver* resolver){
     resolver->depth++;
-    resolver->current = newScope(resolver->current, resolver->depth);
+    Scope* new = newScope(resolver->current, resolver->depth);
+    if(new == NULL){
+        RESOLVER_ERROR("New scope initialization failed\n");
+        return;
+    }
+    resolver->current = new;
 } 
 
 void endScope(ScopeResolver* resolver){
@@ -91,6 +103,7 @@ void endScope(ScopeResolver* resolver){
         return;
     }
     resolver->depth--;
+    resolver->slot -= resolver->current->symbol_count;
     resolver->current = resolver->current->parent;
 }
 
@@ -147,13 +160,13 @@ bool resolveStmt(ScopeResolver* resolver, Stmt*stmt){
         // Flow control statements
         case IF_STMT: 
             success = resolveExpr(resolver, stmt->body._if->condition); TERMINATE_RESOLVER_IF_ERROR();
-            success = resolveExpr(resolver, stmt->body._if->then_branch); TERMINATE_RESOLVER_IF_ERROR();
-            success = resolveExpr(resolver, stmt->body._if->else_branch); TERMINATE_RESOLVER_IF_ERROR();
+            success = resolveStmt(resolver, stmt->body._if->then_branch); TERMINATE_RESOLVER_IF_ERROR();
+            success = resolveStmt(resolver, stmt->body._if->else_branch); TERMINATE_RESOLVER_IF_ERROR();
             break;
         case WHILE_STMT: 
             success = resolveExpr(resolver, stmt->body._while->condition); TERMINATE_RESOLVER_IF_ERROR();
-            success = resolveExpr(resolver, stmt->body._while->body); TERMINATE_RESOLVER_IF_ERROR();
-            success = resolveExpr(resolver, stmt->body._while->increment); TERMINATE_RESOLVER_IF_ERROR();
+            success = resolveStmt(resolver, stmt->body._while->body); TERMINATE_RESOLVER_IF_ERROR();
+            success = resolveStmt(resolver, stmt->body._while->increment); TERMINATE_RESOLVER_IF_ERROR();
             break;
         case BREAK_STMT: 
         case SKIP_STMT: 
@@ -174,7 +187,7 @@ bool resolveStmt(ScopeResolver* resolver, Stmt*stmt){
             }
             else{
                 type = SYM_LOC;
-                slot = resolver->current->symbol_count;
+                slot = resolver->slot++;
             }
             if(scopeLookUpSymbol(resolver->current, stmt->body._var_decl->name.start, stmt->body._var_decl->name.length) != NULL){
                 RESOLVER_ERROR("Variables with the same name cannot be re-declared in the same scope\n");
@@ -245,7 +258,6 @@ bool resolveExpr(ScopeResolver* resolver, Expr* expr){
 }
 
 Symbol* lookUpSymbol(ScopeResolver* resolver, const char* name, size_t length){
-    int depth = 0;
     Scope* scope = resolver->current;
     Symbol* symbol;
     while(scope != NULL){
@@ -259,7 +271,7 @@ Symbol* lookUpSymbol(ScopeResolver* resolver, const char* name, size_t length){
 Symbol* scopeLookUpSymbol(Scope* scope, const char* name, size_t length){
     int i;
     Symbol* symbol;
-    for(i = 0; i < scope->symbol_count; i++){
+    for(i = scope->symbol_count - 1; i >= 0; i--){
         symbol = scope->locals[i];
         if(symbol->length == length && memcmp(symbol->name, name, length) == 0)
             return symbol;

@@ -114,6 +114,7 @@ void compileStatementList(StmtList* list){
 
 void compileStatement(Stmt* stmt){
     if(compile_error) return;
+    Symbol* symbol;
 
     switch(stmt->type){
         case BLOCK_STMT:
@@ -133,15 +134,19 @@ void compileStatement(Stmt* stmt){
         case VAR_DECL:
             /* emit rvalue*/
             if(stmt->body._var_decl->init_expr){
-                compileExpr(stmt->body._var_decl->init_expr); TERMINATE_IF_ERROR();
+                compileExpr(stmt->body._var_decl->init_expr); 
+                TERMINATE_IF_ERROR();
             }
             else emitByte(OP_NIL);
 
-            const char* name = stmt->body._var_decl->name.start;
-            int length = stmt->body._var_decl->name.length;
-            char* lexeme = getLexeme(stmt->body._var_decl->name);
-            uint8_t global = makeIdentifierConstant(name, length);
-            defineVariable(global);
+            symbol = stmt->body._var_decl->symbol;
+            if(symbol->type == SYM_GLOB){
+                const char* name = symbol->name;
+                int length = symbol->length;
+                char* lexeme = getLexeme(stmt->body._var_decl->name);
+                uint8_t global = makeIdentifierConstant(name, length);
+                defineVariable(global);
+            }
             break;
         
         case IF_STMT:{
@@ -222,6 +227,8 @@ void compileExpr(Expr* expr){
     if(compile_error) return;
     
     Chunk *chunk = currentChunk();
+    Symbol* symbol;
+
     switch(expr->type){
         case LITERAL_EXPR:{
             switch(expr->body._lit->token.type){
@@ -240,13 +247,26 @@ void compileExpr(Expr* expr){
             break;
         }
         case VAR_EXPR: {
-            const char* name = expr->body._var->name.start;
-            int len = expr->body._var->name.length;
-            uint8_t ref = makeIdentifierConstant(name, len);
-            emitBytes(2, OP_LOAD_GLOBAL, ref);
+            symbol = expr->body._var->symbol;
+            const char* name = symbol->name;
+            int len = symbol->length;
+            
+            switch(symbol->type){
+                case SYM_GLOB:{
+                    uint8_t ref = makeIdentifierConstant(name, len);
+                    emitBytes(2, OP_LOAD_GLOB, ref);
+                    break;
+                }
+                case SYM_LOC:
+                    emitBytes(2, OP_LOAD_LOC, symbol->slot);
+                    break;
+                case SYM_UVAL:
+                    break;
+            }
+
             break;
         }
-        case GROUP_EXPR: // to be implemented
+        case GROUP_EXPR:
             compileExpr(expr->body._group->expr); TERMINATE_IF_ERROR();
             break;
         case BINARY_EXPR:
@@ -260,10 +280,22 @@ void compileExpr(Expr* expr){
             break;
         case ASSIGNMENT_EXPR: { 
             compileExpr(expr->body._assign->val); TERMINATE_IF_ERROR();
-            const char* name = expr->body._assign->var.start;
-            int len = expr->body._assign->var.length;
-            uint8_t ref = makeIdentifierConstant(name, len);
-            emitBytes(2, OP_STORE_GLOBAL, ref);
+            symbol = expr->body._assign->symbol;
+            const char* name = symbol->name;
+            int len = symbol->length;
+
+            switch(symbol->type){
+                case SYM_GLOB:{
+                    uint8_t ref = makeIdentifierConstant(name, len);
+                    emitBytes(2, OP_STORE_GLOB, ref);
+                    break;
+                }
+                case SYM_LOC:
+                    emitBytes(2, OP_STORE_LOC, symbol->slot);
+                    break;
+                case SYM_UVAL:
+                    break;
+            }
             break;
         }
         case ARR_EXPR:{
@@ -364,7 +396,7 @@ uint8_t makeIdentifierConstant(const char* name, int len){
 }
 
  void defineVariable(uint8_t global){
-    emitBytes(2, OP_DEFINE_GLOBAL, global);
+    emitBytes(2, OP_DEFINE_GLOB, global);
 }
 
 int emitJump(uint8_t op){
