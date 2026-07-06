@@ -2,6 +2,7 @@
 #define RESOLVE_SCOPE_H
 #include "common.h"
 #include "compiler/token.h"
+#include "compiler/statement.h"
 
 #define LOCAL_MAX 256
 
@@ -21,7 +22,7 @@ typedef struct {
 
 typedef struct _Scope {
     struct _Scope* parent;
-    Symbol **symbols;
+    Symbol **locals;
     size_t symbol_count;
     size_t capacity;
 } Scope;
@@ -44,20 +45,29 @@ typedef struct {
     Scope *global;
     Scope *current;
     int depth;
+
+    char error_msg[256];
+    bool has_error;
 } ScopeResolver;
 
 
 void initResolver(ScopeResolver*);
-void freeResolver(ScopeResolver*);
+void freeScopesAndSymbols();
 void beginScope(ScopeResolver*);
 void endScope(ScopeResolver*);
-void scopeAddSymbol(Scope*, Symbol*);
+void scopeAddLocal(Scope*, Symbol*);
+Symbol* lookUpSymbol(ScopeResolver*, const char*, size_t);
+Symbol* scopeLookUpSymbol(Scope*, const char*, size_t);
 
 Symbol* newSymbol(SymbolType, const char*, const size_t, int, int);
 Scope* newScope(Scope*, int);
 
 void freeScopes(ScopePool*);
 void freeSymbols(SymbolPool*);
+
+bool resolve(ScopeResolver*, StmtList*);
+static bool resolveStmt(ScopeResolver*, Stmt*);
+static bool resolveExpr(ScopeResolver*, Expr*);
 
 extern SymbolPool all_symbols;
 extern ScopePool all_scopes;

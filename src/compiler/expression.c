@@ -72,6 +72,7 @@ Expr* newExpr(ExprType type){
             expr->body._assign = malloc(sizeof(AssignmentExpr));
             expr->body._assign->var.type = TOKEN_NONE;
             expr->body._assign->val = NULL;
+            expr->body._assign->symbol = NULL;
             break;
         case ARR_EXPR:
             expr->body._arr = malloc(sizeof(ArrExpr));

@@ -24,7 +24,7 @@ void initCompiler(){
 
 void freeCompiler(){
     freeLoopStack(&compiler.loops);
-    freeResolver(&compiler.resolver);
+    freeScopesAndSymbols();
 }
 
 bool compile(const char* source, Chunk* chunk){
@@ -71,7 +71,7 @@ bool compile(const char* source, Chunk* chunk){
     compiler.compilingChunk = chunk;
 
     // Scope resolver and name binding
-    resolve(&statements);
+    resolve(&compiler.resolver, &statements);
 
     // bytecode emission
     compileStatementList(&statements);
@@ -547,6 +547,4 @@ static bool _debugExpr(Expr* expr, int indent){
     return true;
 }
 
-void resolve(StmtList* stmt){
-
-}
+#undef COMPILE_ERROR

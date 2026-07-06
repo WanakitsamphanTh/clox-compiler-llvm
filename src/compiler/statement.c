@@ -34,6 +34,7 @@ Stmt* newStmt(StmtType type){
         case VAR_DECL:
             stmt->body._var_decl = malloc(sizeof(VarDeclStmt)); 
             stmt->body._var_decl->init_expr = NULL;
+            stmt->body._var_decl->symbol = NULL;
             break;
     }
     return stmt;

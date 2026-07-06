@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "compiler/expression.h"
+#include "compiler/resolve_scope.h"
 
 struct _Stmt;
 typedef struct _Stmt Stmt;
@@ -54,6 +55,7 @@ typedef struct{
 typedef struct {
     Token name;
     Expr *init_expr;
+    Symbol *symbol;
 } VarDeclStmt;
 
 struct _Stmt {

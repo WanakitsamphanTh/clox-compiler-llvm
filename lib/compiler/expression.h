@@ -45,6 +45,7 @@ typedef struct {
 
 typedef struct {
     Token var;
+    Symbol* symbol;
     Expr* val;
 } AssignmentExpr;
 
