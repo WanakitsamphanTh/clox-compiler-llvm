@@ -188,6 +188,7 @@ bool resolveStmt(ScopeResolver* resolver, Stmt*stmt){
         case BLOCK_STMT: 
             beginScope(resolver);
             success = resolve(resolver, &stmt->body._block->stmt_list); TERMINATE_RESOLVER_IF_ERROR();
+            stmt->body._block->scope = resolver->current;
             endScope(resolver);
             break;
 

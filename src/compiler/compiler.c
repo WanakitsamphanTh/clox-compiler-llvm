@@ -122,9 +122,13 @@ void compileStatement(Stmt* stmt){
     Symbol* symbol;
 
     switch(stmt->type){
-        case BLOCK_STMT:
+        case BLOCK_STMT:{
             compileStatementList(&stmt->body._block->stmt_list); TERMINATE_IF_ERROR();
+            int i;
+            for(i = 0; i < stmt->body._block->scope->symbol_count; i++)
+                emitByte(OP_POP);
             break;
+        }
 
         case EXPR_STMT: 
             compileExpr(stmt->body._expr->expr); TERMINATE_IF_ERROR();
@@ -150,6 +154,8 @@ void compileStatement(Stmt* stmt){
                 int length = symbol->length;
                 uint8_t global = makeIdentifierConstant(name, length);
                 defineVariable(global);
+            } else if(symbol->type == SYM_LOC){
+                emitBytes(2, OP_STORE_LOC, (uint8_t)symbol->slot);
             }
             break;
         

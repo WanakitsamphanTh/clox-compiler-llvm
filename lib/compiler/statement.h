@@ -50,6 +50,7 @@ typedef struct{
 
 typedef struct{
     StmtList stmt_list;
+    Scope* scope;
 } BlockStmt;
 
 typedef struct {

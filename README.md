@@ -3,6 +3,8 @@ This is my project in implementing a compiler and LLVM in C for Lox (from Crafti
 
 ## Key differences
 - The compiler in Crafting Interpreter uses Pratt Parsing without building AST. My compiler traverses AST and emits bytecodes for LLVM. I implemented almost everything besides LLVM from scratch, so a large chunk of compiler code needs optimization.
+- Therefore, I have a distinct scope resolver from compiler. Also expressions and statements that include identifiers contain corresponding Symbol objects inside.
+- The way boolean values are evaluated, boolean true is evaluated to true, everything else is evaluated to false. (hence non-boolean values are false)
 - ObjString is implemented as variable-sized struct.
 - Constant pool has no duplicate values since `addConstant` never adds identical values.
 - My CLox features Array.
@@ -15,15 +17,11 @@ This is my project in implementing a compiler and LLVM in C for Lox (from Crafti
         - [ ] binary operation $ +: a, b \mapsto \{a_1,...a_n,b_1,...b_n\}  $
         - [ ] unary operation $ \text{len}: arr \rightarrow number$
         - [ ] element-wise comparition `==` and `!=`
-- My CLox will have compile-time constant evaluation in which all constant expressions are evaluated and stored constant pool instead of doing it at runtime. *[ To implement ]*
 
 ## Note
 - Runtime stack and constant pool is too small
-- I should optimize the loop in `addConstant()`
-- I may also need semantic resolver to calculate right jump offset for `break` and `skip` statements
-- I should add constant folding in my compiler
+- I should optimize the loop in `addConstant()` and `lookUpSymbol()` to reduce time complexity to O(N)
 - I'm thinking about the better way to implement array at runtime
-
 
     **currently**
     - push all array elements on stack
@@ -31,8 +29,13 @@ This is my project in implementing a compiler and LLVM in C for Lox (from Crafti
 
 
     **optimization approach**
-    - array of compile-time constants &rarr; compile-time evaluation
-    - array of compile-time constants and identifiers &rarr; partition array by identifiers, evaluate constant part at compile-time, append subarrays at runtime(?)
+    - allocate array and push on stack
+    - push i-th element on stack and set i-th elemnt (i = 0...n) (JVM and Python apprroach)
+    - or partition array, each has number of elements not exceeding the predefined limit, collect elements into subarrays, and concatenate all subarrays into a complete array (Problably Lua approach)
+
+- Maybe I'll add another data type that represents a single byte to my CLox, constants of which are a part of bytecode instead of living in the constant pool.
+- Maybe adding tuple and tuple unpacking
+- I should add constant folding in my compiler to reduce number of constants.
 
 
 *Should you have any suggestions, please feel free to reach me*

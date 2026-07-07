@@ -30,6 +30,7 @@ Stmt* newStmt(StmtType type){
         case BLOCK_STMT:
             stmt->body._block = malloc(sizeof(BlockStmt)); 
             stmt->body._block->stmt_list = newStmtList();
+            stmt->body._block->scope = NULL;
             break;
         case VAR_DECL:
             stmt->body._var_decl = malloc(sizeof(VarDeclStmt)); 

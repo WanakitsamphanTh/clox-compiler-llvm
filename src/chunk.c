@@ -8,6 +8,7 @@ static int simpleInstruction(const char*, int);
 static int jumpInstruction(const char*, int, const Chunk*, int);
 static int constantInstruction(const char*, const Chunk*, int);
 static int arrayInstruction(const char*, const Chunk*, int);
+int localInstruction(const char*, const Chunk*, int);
 
 Chunk newChunk() {
     Chunk chunk = {0,0,NULL, newValueArray()};
@@ -97,9 +98,9 @@ int disassembleInstruction(const Chunk* chunk, int offset){
         case OP_STORE_GLOB:
             return constantInstruction("OP_STORE_GLOB", chunk, offset);
         case OP_LOAD_LOC:
-            return constantInstruction("OP_LOAD_LOC", chunk, offset);
+            return localInstruction("OP_LOAD_LOC", chunk, offset);
         case OP_STORE_LOC:
-            return constantInstruction("OP_STORE_LOC", chunk, offset);
+            return localInstruction("OP_STORE_LOC", chunk, offset);
 
         case OP_CONST:
             return constantInstruction("OP_CONST", chunk, offset);
@@ -154,6 +155,12 @@ int constantInstruction(const char* instruction, const Chunk* chunk, int offset)
         }
     } else printf("\'%s\'", buffer);
     printf("\n");
+    return offset + 2;
+}
+
+int localInstruction(const char* instruction, const Chunk* chunk, int offset){
+    uint8_t slot = chunk->code[offset + 1];
+    printf("%-16s %04d\n", instruction, slot);
     return offset + 2;
 }
 

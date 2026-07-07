@@ -1,0 +1,19 @@
+var x;
+
+print "=====while=====";
+x = 10;
+while(x > 0){
+    var d = -x;
+    print "d = " + d;
+    x = x - 1;
+}
+
+print "=====for=====";
+x = 10;
+for(var i = 0; i < x; i = i + 1)
+    print(i);
+
+print "=====nested for=====";
+for(var i = 0; i < 10; i = i + 1)
+    for(var j = 0; j < 10; j = j + 1)
+        print "(" + i + "," + j + ")";
