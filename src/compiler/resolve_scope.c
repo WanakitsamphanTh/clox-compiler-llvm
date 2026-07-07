@@ -1,6 +1,19 @@
 #include "compiler/resolve_scope.h"
+#include "compiler/statement.h"
+#include "compiler/expression.h"
 #include "memory.h"
 #include <string.h>
+
+#define TERMINATE_RESOLVER_IF_ERROR() do { \
+                                        if(resolver->has_error) { \
+                                            success = false; \
+                                            goto terminate_resolver; \
+                                        } \
+                                    } while(0)
+#define RESOLVER_ERROR(...) do { \
+                                snprintf(resolver->error_msg, 256, __VA_ARGS__); \
+                                resolver->has_error = true; \
+                            } while(0)
 
 SymbolPool all_symbols = {.head = NULL};
 ScopePool all_scopes = {.head = NULL};
@@ -14,8 +27,12 @@ void initResolver(ScopeResolver* resolver){
 }
 
 void freeScopesAndSymbols(){
+    printf("freeing scopes...\n");
     freeScopes(&all_scopes);
+    printf("scopes freed\n");
+    printf("freeing symbols...\n");
     freeSymbols(&all_symbols);
+    printf("symbols freed\n");
 }
 
 Symbol* newSymbol(SymbolType type, const char* name, const size_t len, int depth, int slot){
@@ -23,7 +40,9 @@ Symbol* newSymbol(SymbolType type, const char* name, const size_t len, int depth
     if(sym == NULL) return NULL;
 
     struct SymbolNode* node = malloc(sizeof(struct SymbolNode));
-    if(node == NULL)  return NULL;
+    if(node == NULL)  {
+        return NULL;
+    }
 
     sym->depth = depth;
     sym->slot = slot;
@@ -44,7 +63,9 @@ Scope* newScope(Scope* parent, int depth){
     if(scope == NULL)  return NULL;
 
     struct ScopeNode* node = malloc(sizeof(struct ScopeNode));
-    if(node == NULL)  return NULL;
+    if(node == NULL)  {
+        return NULL;
+    }
 
     scope->capacity = 0;
     scope->symbol_count = 0;
@@ -71,7 +92,6 @@ void freeScopes(ScopePool* scopes){
 }
 
 void freeScope(Scope* scope){
-    int i;
     free(scope->locals);
     free(scope);
 }
@@ -99,7 +119,7 @@ void beginScope(ScopeResolver* resolver){
 
 void endScope(ScopeResolver* resolver){
     if(resolver->depth == 0){
-        PARSER_ERROR("Attempted to retract from the global scope");
+        RESOLVER_ERROR("Attempted to retract from the global scope");
         return;
     }
     resolver->depth--;
@@ -107,25 +127,18 @@ void endScope(ScopeResolver* resolver){
     resolver->current = resolver->current->parent;
 }
 
-void scopeAddLocal(Scope* scope, Symbol* local){
+bool scopeAddLocal(Scope* scope, Symbol* local){
     if(scope->symbol_count + 1 > scope->capacity){
         size_t old_capacity = scope->capacity;
         scope->capacity = growCapacity(old_capacity);
         scope->locals = growArray(sizeof(Symbol*), scope->locals, old_capacity, scope->capacity);
+        if(scope->locals == NULL) {
+            return false;
+        }
     }
     scope->locals[scope->symbol_count++] = local;
+    return true;
 }
-
-#define TERMINATE_RESOLVER_IF_ERROR() do { \
-                                        if(resolver->has_error) { \
-                                            success = false; \
-                                            goto terminate_resolver; \
-                                        } \
-                                    } while(1)
-#define RESOLVER_ERROR(...) do { \
-                                snprintf(resolver->error_msg, 256, __VA_ARGS__); \
-                                resolver->has_error = true; \
-                            } while(1)
 
 bool resolve(ScopeResolver* resolver, StmtList* stmts){
     int i = 0;
@@ -199,7 +212,10 @@ bool resolveStmt(ScopeResolver* resolver, Stmt*stmt){
                 TERMINATE_RESOLVER_IF_ERROR();
             }
             stmt->body._var_decl->symbol = symbol;
-            scopeAddLocal(resolver->current, symbol);
+            if(!scopeAddLocal(resolver->current, symbol)){
+                RESOLVER_ERROR("cannot add a new variable to the current scope\n");
+                TERMINATE_RESOLVER_IF_ERROR();
+            }
             break;
     }
 
@@ -220,7 +236,7 @@ bool resolveExpr(ScopeResolver* resolver, Expr* expr){
             success = resolveExpr(resolver, expr->body._bin->right); TERMINATE_RESOLVER_IF_ERROR();
             success = resolveExpr(resolver, expr->body._bin->left); TERMINATE_RESOLVER_IF_ERROR();
             break;
-        case ASSIGNMENT_EXPR:
+        case ASSIGNMENT_EXPR:{
             success = resolveExpr(resolver, expr->body._assign->val); TERMINATE_RESOLVER_IF_ERROR();
             Symbol* symbol = lookUpSymbol(resolver, expr->body._assign->var.start, expr->body._assign->var.length);
             if(symbol == NULL){
@@ -229,6 +245,7 @@ bool resolveExpr(ScopeResolver* resolver, Expr* expr){
             }            
             expr->body._assign->symbol = symbol;
             break;
+        }
         case VAR_EXPR:{
             Symbol* symbol = lookUpSymbol(resolver, expr->body._var->name.start, expr->body._var->name.length);
             if(symbol == NULL){

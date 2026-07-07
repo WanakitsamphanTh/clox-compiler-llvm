@@ -8,7 +8,7 @@
 struct _Stmt;
 typedef struct _Stmt Stmt;
 
-typedef struct {
+typedef struct _StmtList {
     int count;
     Stmt** stmt;
 } StmtList;

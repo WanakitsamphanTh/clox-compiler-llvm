@@ -69,7 +69,7 @@ print x;
 y = 10;
 z = {y+1,y+2,y+3};
 print z;
-var a = {y};
+a = {y};
 print a;
 var c = {};
 print c;

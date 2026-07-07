@@ -72,6 +72,11 @@ bool compile(const char* source, Chunk* chunk){
 
     // Scope resolver and name binding
     resolve(&compiler.resolver, &statements);
+    if(compiler.resolver.has_error){
+        fprintf(stderr, "Resolver error: %s", compiler.resolver.error_msg);
+        successful = false;
+        goto compilation_terminated;
+    }
 
     // bytecode emission
     compileStatementList(&statements);
@@ -87,9 +92,9 @@ bool compile(const char* source, Chunk* chunk){
     //Free memory on termination
     compilation_terminated:
         #ifdef DEBUG_PRINT_CHUNK
-        disassembleChunk(currentChunk(), "Main chunk");
+        if(!compiler.resolver.has_error && !parser.has_error) disassembleChunk(currentChunk(), "Main chunk");
         #endif
-        freeStmtList(&statements); 
+        freeStmtList(&statements);  // errror here!
         freeTokenList(&token_list);
         freeCompiler();
 
@@ -143,7 +148,6 @@ void compileStatement(Stmt* stmt){
             if(symbol->type == SYM_GLOB){
                 const char* name = symbol->name;
                 int length = symbol->length;
-                char* lexeme = getLexeme(stmt->body._var_decl->name);
                 uint8_t global = makeIdentifierConstant(name, length);
                 defineVariable(global);
             }
@@ -258,7 +262,7 @@ void compileExpr(Expr* expr){
                     break;
                 }
                 case SYM_LOC:
-                    emitBytes(2, OP_LOAD_LOC, symbol->slot);
+                    emitBytes(2, OP_LOAD_LOC, (uint8_t) symbol->slot);
                     break;
                 case SYM_UVAL:
                     break;
@@ -291,7 +295,7 @@ void compileExpr(Expr* expr){
                     break;
                 }
                 case SYM_LOC:
-                    emitBytes(2, OP_STORE_LOC, symbol->slot);
+                    emitBytes(2, OP_STORE_LOC, (uint8_t) symbol->slot);
                     break;
                 case SYM_UVAL:
                     break;
@@ -377,7 +381,7 @@ void emitBytes(int n, ...){
     va_end(bytes);
 }
 
-bool emitConstant(Value value){
+void emitConstant(Value value){
     emitBytes(2, OP_CONST, makeConstant(value));
 }
 

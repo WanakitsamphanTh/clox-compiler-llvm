@@ -2,9 +2,12 @@
 #define RESOLVE_SCOPE_H
 #include "common.h"
 #include "compiler/token.h"
-#include "compiler/statement.h"
 
 #define LOCAL_MAX 256
+
+typedef struct _Stmt Stmt;
+typedef struct _expression Expr;
+typedef struct _StmtList StmtList;
 
 typedef enum {
     SYM_GLOB,
@@ -57,7 +60,7 @@ void initResolver(ScopeResolver*);
 void freeScopesAndSymbols();
 void beginScope(ScopeResolver*);
 void endScope(ScopeResolver*);
-void scopeAddLocal(Scope*, Symbol*);
+bool scopeAddLocal(Scope*, Symbol*);
 Symbol* lookUpSymbol(ScopeResolver*, const char*, size_t);
 Symbol* scopeLookUpSymbol(Scope*, const char*, size_t);
 

@@ -214,7 +214,7 @@ InterpretResult runVM(){
                 break;
             
 
-            case OP_DEFINE_GLOBAL:{
+            case OP_DEFINE_GLOB:{
                 ObjString* name = AS_STR(vmReadConstant());
                 Value init_val = vmPeek(0);
                 tableSet(&vm.globals, name, init_val);
@@ -222,7 +222,7 @@ InterpretResult runVM(){
                 break;
             }
 
-            case OP_LOAD_GLOBAL:{
+            case OP_LOAD_GLOB:{
                 ObjString* name = AS_STR(vmReadConstant());
                 Value val;
                 if(!tableGet(&vm.globals, name, &val)) {
@@ -234,7 +234,7 @@ InterpretResult runVM(){
                 break;
             }
 
-            case OP_STORE_GLOBAL:{
+            case OP_STORE_GLOB:{
                 ObjString* name = AS_STR(vmReadConstant());
                 Value val = vmPeek(0);
                 /* if the key is new, it should be error*/
@@ -243,6 +243,20 @@ InterpretResult runVM(){
                     RuntimeError("Unknown variable %s\n", name->str);
                     return INTERPRET_RUNTIME_ERROR;
                 }
+                break;
+            }
+
+            case OP_LOAD_LOC:{
+                uint8_t slot = vmReadByte();
+                Value val = vm.stack[slot];
+                vmPush(val);
+                break;
+            }
+
+            case OP_STORE_LOC:{
+                uint8_t slot = vmReadByte();
+                Value *assignee = &vm.stack[slot];
+                *assignee = vmPeek(0);
                 break;
             }
 

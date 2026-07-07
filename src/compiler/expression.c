@@ -106,7 +106,6 @@ void freeExpr(Expr *expr){
             free(expr->body._group);
             break;
         case VAR_EXPR: 
-            free(expr->body._var->symbol);
             free(expr->body._var);
             break;    
         case ASSIGNMENT_EXPR:
