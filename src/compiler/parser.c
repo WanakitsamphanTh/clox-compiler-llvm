@@ -117,6 +117,8 @@ StmtList parse(){
 Stmt* parseDeclaration(){
     if(match(TOKEN_VAR)) {
         return parseVarDecl();
+    } else if(match(TOKEN_FUN)){
+        return parseFnDecl();
     }
     return parseStmt();
 }
@@ -139,6 +141,28 @@ Stmt* parseVarDecl(){
 
     consume(TOKEN_SEMICOLON, "expect semicolon after variable declaration");
     END_PARSING_IF_ERROR();
+
+    end_parsing:
+        RETURN_STMT(stmt);
+}
+
+Stmt* parseFnDecl(){
+    Token id;
+    Stmt* stmt = newStmt(FN_DECL);
+
+    id = consume(TOKEN_IDENTIFIER, "expect function name");
+    END_PARSING_IF_ERROR();
+    stmt->body._fn_decl->name = id;
+
+    consume(TOKEN_LEFT_PAREN, "expect open '(' after function name"); END_PARSING_IF_ERROR();
+    if(!check(TOKEN_RIGHT_PAREN)){
+        do {
+            id = consume(TOKEN_IDENTIFIER, "expect variable name");
+            fnDeclAddParam(stmt->body._fn_decl, id);
+        } while(match(TOKEN_COMMA));
+    }
+    consume(TOKEN_RIGHT_PAREN, "expect closng ')' after parameters"); END_PARSING_IF_ERROR();
+    stmt->body._fn_decl->body = parseBlock(); END_PARSING_IF_ERROR();
 
     end_parsing:
         RETURN_STMT(stmt);

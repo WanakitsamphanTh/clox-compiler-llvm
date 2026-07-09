@@ -5,17 +5,21 @@
 #include "common.h"
 #include "value.h"
 #include "table.h"
+#include "function.h"
 
-#define STACK_MAX 256
+#define FRAME_MAX 64
+#define STACK_MAX (FRAME_MAX * (UINT8_MAX + 1))
 
 typedef struct {
     Chunk* chunk;
     uint8_t* ip;
-    Value stack[STACK_MAX];
-    Value* stackTop;
+    Value* stack_top;
+    size_t frame_count;
     Obj* objects;
     Table strings;
     Table globals;
+    Value stack[STACK_MAX];
+    CallFrame call_frame[FRAME_MAX];
 } VM;
 
 typedef enum {

@@ -28,6 +28,7 @@ StmtList parse();
 
 static Stmt* parseDeclaration();
 static Stmt* parseVarDecl();
+static Stmt* parseFnDecl();
 static Stmt* parseStmt();
 static Stmt* parsePrint();
 static Stmt* parseBlock();

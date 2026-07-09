@@ -15,6 +15,11 @@ typedef enum {
     SYM_UVAL
 } SymbolType;
 
+typedef enum {
+    SCRIPT_TYPE,
+    FUNCTION_TYPE
+} ScriptType;
+
 typedef struct {
     int depth;
     int slot;
@@ -28,6 +33,7 @@ typedef struct _Scope {
     Symbol **locals;
     size_t symbol_count;
     size_t capacity;
+    ScriptType script_type;
     int depth;
 } Scope;
 
@@ -65,7 +71,7 @@ Symbol* lookUpSymbol(ScopeResolver*, const char*, size_t);
 Symbol* scopeLookUpSymbol(Scope*, const char*, size_t);
 
 Symbol* newSymbol(SymbolType, const char*, const size_t, int, int);
-Scope* newScope(Scope*, int);
+Scope* newScope(Scope*, int, ScriptType);
 
 void freeScopes(ScopePool*);
 void freeSymbols(SymbolPool*);

@@ -32,7 +32,7 @@ typedef enum {
     OBJ_VALUE,
 } ValueType;
 
-typedef struct {
+typedef struct _Value {
     ValueType type;
     union {
         double num;

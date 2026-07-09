@@ -7,6 +7,7 @@
 
 struct _Stmt;
 typedef struct _Stmt Stmt;
+typedef struct _Chunk Chunk;
 
 typedef struct _StmtList {
     int count;
@@ -23,9 +24,11 @@ typedef enum {
     BREAK_STMT,
     SKIP_STMT,
     BLOCK_STMT,
+    RETURN_STMT,
 
     // Declaration
-    VAR_DECL,  
+    VAR_DECL, 
+    FN_DECL
 } StmtType;
 
 typedef struct{
@@ -59,6 +62,25 @@ typedef struct {
     Symbol *symbol;
 } VarDeclStmt;
 
+typedef struct _FnDeclStmt {
+    Token name;
+    Symbol *symbol;
+    int arity;
+
+    struct {
+        Token* names;
+        Symbol** symbols;
+        size_t capacity;
+    } args;
+
+    BlockStmt* body;
+
+} FnDeclStmt;
+
+typedef struct _ReturnStmt {
+    Expr* ret_val;
+} ReturnStmt;
+
 struct _Stmt {
     StmtType type;
     union {
@@ -68,6 +90,8 @@ struct _Stmt {
         IfStmt* _if;
         WhileStmt* _while;
         VarDeclStmt* _var_decl;
+        FnDeclStmt* _fn_decl;
+        ReturnStmt* _ret;
     } body;
 };
 
@@ -78,5 +102,8 @@ void freeStmt(Stmt*);
 StmtList newStmtList();
 void appendStmtList(StmtList*, Stmt*);
 void freeStmtList(StmtList*);
+
+void fnDeclnit(FnDeclStmt*);
+void fnDeclAddParam(FnDeclStmt*,Token);
 
 #endif

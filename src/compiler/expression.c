@@ -79,6 +79,9 @@ Expr* newExpr(ExprType type){
             expr->body._arr->elements = NULL;
             expr->body._arr->count = 0;
             break;
+        case CALL_EXPR:
+            expr->body._call = malloc(sizeof(CallExpr));
+            callExprInit(expr->body._call);
         default:
             free(expr);
             return NULL;
@@ -119,6 +122,14 @@ void freeExpr(Expr *expr){
             free(expr->body._arr->elements);
             free(expr->body._arr);
             break; 
+        }
+        case CALL_EXPR:{
+            int i = 0;
+            for(i = 0; i < expr->body._call->argc; i++)
+                freeExpr(expr->body._call->argv.list[i]);
+            free(expr->body._call->argv.list);
+            freeExpr(expr->body._call->callee);
+            free(expr->body._call);
         }
     }
 
@@ -163,4 +174,21 @@ bool isConstantExpr(const Expr* expr){
     }
 
     return false; /* unknown variable can not be fast-evaluated hence not constant*/
+}
+
+void callExprInit(CallExpr* call){
+    call->argc = 0;
+    call->callee = NULL;
+    call->argv.capacity = 0;
+    call->argv.list = NULL;
+}
+
+void callExprAddParam(CallExpr* call, Expr* arg){
+    if(call->argc + 1 >= call->argv.capacity){
+        size_t old_capacity = call->argv.capacity;
+        call->argv.capacity = growCapacity(old_capacity);
+        call->argv.list = growArray(sizeof(Expr*), call->argv.list, old_capacity, call->argv.capacity);
+    }
+    int i = call->argc++;
+    call->argv.list[i] = arg;
 }

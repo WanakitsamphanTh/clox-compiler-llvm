@@ -68,7 +68,7 @@ bool compile(const char* source, Chunk* chunk){
     // Compilation
     // initialize compiler
     initCompiler();
-    compiler.compilingChunk = chunk;
+    compiler.compiling_chunk = chunk;
 
     // Scope resolver and name binding
     resolve(&compiler.resolver, &statements);
@@ -158,6 +158,39 @@ void compileStatement(Stmt* stmt){
                 emitBytes(2, OP_STORE_LOC, (uint8_t)symbol->slot);
             }
             break;
+
+        case FN_DECL:{
+            FnDeclStmt* decl = stmt->body._fn_decl;
+            symbol = decl->symbol;
+            uint32_t hash = hashString(symbol->name, symbol->length);
+            ObjString* name = newObjString(symbol->name, symbol->length, hash);
+            ObjFn* fn = newFunction(FN, decl->arity, name);
+
+            Chunk* saved_chunk = compiler.compiling_chunk;
+            compiler.compiling_chunk = &fn->chunk;
+            
+            compileStatement(decl->body);
+            TERMINATE_IF_ERROR();
+
+            if(decl->body->stmt_list.count == 0 
+                || decl->body->stmt_list.stmt[decl->body->stmt_list.count - 1]->type != RETURN_STMT) 
+                emitBytes(2,OP_NIL,OP_RETURN); // if the final statement is not return, return nil
+
+            compiler.compiling_chunk = saved_chunk;
+
+            makeConstant(VALUE_OBJ(fn));
+            switch(decl->symbol->type){
+                case SYM_GLOB:{
+                    uint8_t global = makeIdentifierConstant(symbol->name, symbol->length);
+                    defineVariable(global);
+                    break;
+                }
+                case SYM_LOC:
+                    emitBytes(2, OP_STORE_LOC, (uint8_t)symbol->slot);
+                    break;
+            }
+            break;
+        }
         
         case IF_STMT:{
             compileExpr(stmt->body._if->condition); TERMINATE_IF_ERROR();
@@ -318,6 +351,14 @@ void compileExpr(Expr* expr){
             emitBytes(2, OP_ARR, (uint8_t) count);
             break;
         }
+        case CALL_EXPR:
+            compileExpr(expr->body._call->callee); TERMINATE_IF_ERROR();
+            for(int i = 0; i < expr->body._call->argc; i++){
+                compileExpr(expr->body._call->argv.list[i]);
+                TERMINATE_IF_ERROR();
+            }
+            emitBytes(2, OP_CALL, (uint8_t) expr->body._call->argc);
+            break;
     }
 
     terminate_compilation:
@@ -440,7 +481,7 @@ void patchJump(int offset){
 }
 
 Chunk* currentChunk(){
-    return compiler.compilingChunk;
+    return compiler.compiling_chunk;
 }
 
 bool _debugStmtList(StmtList stmts, int indent){

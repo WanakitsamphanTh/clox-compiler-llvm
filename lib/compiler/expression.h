@@ -16,7 +16,8 @@ typedef enum {
     UNARY_EXPR,
     VAR_EXPR,
     ASSIGNMENT_EXPR,
-    ARR_EXPR
+    ARR_EXPR,
+    CALL_EXPR,
 } ExprType;
 
 typedef struct {
@@ -54,6 +55,15 @@ typedef struct {
     Expr** elements;
 } ArrExpr;
 
+typedef struct {
+    Expr* callee;
+    size_t argc;
+    struct {
+        Expr** list;
+        size_t capacity;
+    } argv;
+} CallExpr;
+
 struct _expression {
     ExprType type;
     union {
@@ -64,6 +74,7 @@ struct _expression {
         GroupExpr* _group;    
         AssignmentExpr* _assign;
         ArrExpr* _arr;
+        CallExpr* _call;
     } body;
 };
 
@@ -72,5 +83,7 @@ void freeExpr(Expr*);
 bool tokenToValue(Token token, Value* val_ptr);
 ArrExpr* appendArrExpr(ArrExpr*, Expr*);
 bool isConstantExpr(const Expr*);
+void callExprInit(CallExpr*);
+void callExprAddParam(CallExpr*, Expr*);
 
 #endif

@@ -21,6 +21,7 @@ void initVM(){
     initTable(&vm.strings);
     initTable(&vm.globals);
     vm.objects = NULL;
+    vm.frame_count = 0;
 }
 
 void freeVM(){
@@ -260,6 +261,12 @@ InterpretResult runVM(){
                 break;
             }
 
+            case OP_CALL:{
+                uint8_t argc = vmReadByte();
+                // to implement
+                break;
+            }
+
             case OP_POP:
                 vmPop();
                 break;
@@ -272,11 +279,11 @@ InterpretResult runVM(){
 }
 
 void vmPush(Value value){
-    *(vm.stackTop++) = value;
+    *(vm.stack_top++) = value;
 }
 
 Value vmPop(){
-    return *(--vm.stackTop);
+    return *(--vm.stack_top);
 }
 
 uint8_t vmReadByte(){
@@ -294,11 +301,11 @@ Value vmReadConstant() {
 }
 
 void resetStack() {
-    vm.stackTop = vm.stack;
+    vm.stack_top = vm.stack;
 }
 
 static Value vmPeek(size_t dist){
-    return *(vm.stackTop - 1 - dist);
+    return *(vm.stack_top - 1 - dist);
 }
 
 void RuntimeError(const char* fmt, ...){

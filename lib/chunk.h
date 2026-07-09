@@ -47,10 +47,12 @@ typedef enum {
     OP_LOAD_LOC,
     OP_STORE_LOC,
 
+    OP_CALL,
+
     OP_PRINT
 } OpCode;
 
-typedef struct {
+typedef struct _Chunk {
     int count;
     int capacity;
     uint8_t *code;

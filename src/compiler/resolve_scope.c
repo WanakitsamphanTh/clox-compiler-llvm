@@ -20,7 +20,7 @@ ScopePool all_scopes = {.head = NULL};
 
 void initResolver(ScopeResolver* resolver){
     resolver->depth = 0;
-    resolver->global = newScope(NULL, 0);
+    resolver->global = newScope(NULL, 0, SCRIPT_TYPE);
     resolver->current = resolver->global;
     resolver->has_error = false;
     resolver->slot = 0;
@@ -58,7 +58,7 @@ Symbol* newSymbol(SymbolType type, const char* name, const size_t len, int depth
     return sym;
 }
 
-Scope* newScope(Scope* parent, int depth){
+Scope* newScope(Scope* parent, int depth, ScriptType type){
     Scope* scope = malloc(sizeof(Scope));
     if(scope == NULL)  return NULL;
 
@@ -72,6 +72,7 @@ Scope* newScope(Scope* parent, int depth){
     scope->locals = NULL;
     scope->parent = parent;
     scope->depth = depth;
+    scope->script_type = type;
 
     node->scope = scope;
     node->next = all_scopes.head;
@@ -107,9 +108,9 @@ void freeSymbols(SymbolPool* symbols){
     }
 }
 
-void beginScope(ScopeResolver* resolver){
+void beginScope(ScopeResolver* resolver, ScriptType type){
     resolver->depth++;
-    Scope* new = newScope(resolver->current, resolver->depth);
+    Scope* new = newScope(resolver->current, resolver->depth, type);
     if(new == NULL){
         RESOLVER_ERROR("New scope initialization failed\n");
         return;
@@ -186,7 +187,7 @@ bool resolveStmt(ScopeResolver* resolver, Stmt*stmt){
             return true;
         
         case BLOCK_STMT: 
-            beginScope(resolver);
+            beginScope(resolver, resolver->current->script_type);
             success = resolve(resolver, &stmt->body._block->stmt_list); TERMINATE_RESOLVER_IF_ERROR();
             stmt->body._block->scope = resolver->current;
             endScope(resolver);
@@ -217,6 +218,50 @@ bool resolveStmt(ScopeResolver* resolver, Stmt*stmt){
                 RESOLVER_ERROR("cannot add a new variable to the current scope\n");
                 TERMINATE_RESOLVER_IF_ERROR();
             }
+            break;
+
+        case FN_DECL:{
+            if(resolver->depth == 0){
+                type = SYM_GLOB;
+                slot = -1;
+            } else {
+                type = SYM_LOC;
+                slot = resolver->slot++;
+            }
+
+            if(scopeLookUpSymbol(resolver->current, stmt->body._fn_decl->name.start, stmt->body._fn_decl->name.length) != NULL){
+                RESOLVER_ERROR("Cannot define functions with the same name\n");
+                TERMINATE_RESOLVER_IF_ERROR();
+            }
+
+            symbol = newSymbol(type, stmt->body._fn_decl->name.start, stmt->body._fn_decl->name.length, resolver->depth, slot);
+            stmt->body._fn_decl->symbol = symbol;
+            scopeAddLocal(resolver->current, symbol);
+
+            int saved_slot = resolver->slot;
+            beginScope(resolver, FUNCTION_TYPE);
+            resolver->slot = 0;
+        
+            for(int i = 0; i < stmt->body._fn_decl->arity; i++){
+                slot = resolver->slot++;
+                symbol = newSymbol(SYM_LOC, stmt->body._fn_decl->args.names[i].start, stmt->body._fn_decl->args.names[i].length, resolver->depth, slot);
+                stmt->body._fn_decl->args.symbols[i] = symbol;
+                scopeAddLocal(resolver->current, symbol);
+            }
+
+            resolveStmt(resolver, stmt->body._fn_decl->body);
+            endScope(resolver);
+
+            resolver->slot = saved_slot;
+            break;
+        }
+        
+        case RETURN_STMT:
+            if(resolver->current->script_type != FUNCTION_TYPE) {
+                RESOLVER_ERROR("return must be inside a function\n");
+                TERMINATE_RESOLVER_IF_ERROR();
+            }
+            resolveExpr(resolver, stmt->body._ret->ret_val);
             break;
     }
 
@@ -265,6 +310,15 @@ bool resolveExpr(ScopeResolver* resolver, Expr* expr){
                 success = resolveExpr(resolver, expr->body._arr->elements[i]); 
                 TERMINATE_RESOLVER_IF_ERROR();
             }
+            break;
+        }
+        case CALL_EXPR: {
+            int i;
+            for(i = 0; i < expr->body._call->argc; i++){
+                success = resolveExpr(resolver, expr->body._call->argv.list[i]); 
+                TERMINATE_RESOLVER_IF_ERROR();
+            }
+            success = resolveExpr(resolver, expr->body._call->callee); TERMINATE_RESOLVER_IF_ERROR(); 
             break;
         }
         case LITERAL_EXPR:

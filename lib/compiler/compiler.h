@@ -36,7 +36,7 @@ typedef struct {
     ScopeResolver resolver;
     LoopStack loops;
 
-    Chunk* compilingChunk;
+    Chunk* compiling_chunk;
 
     int depth;
 } Compiler;

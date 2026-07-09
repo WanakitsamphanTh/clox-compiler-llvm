@@ -1,4 +1,6 @@
 #include "compiler/statement.h"
+#include "common.h"
+#include "memory.h"
 #include <stdlib.h>
 
 Stmt* newStmt(StmtType type){
@@ -37,6 +39,14 @@ Stmt* newStmt(StmtType type){
             stmt->body._var_decl->init_expr = NULL;
             stmt->body._var_decl->symbol = NULL;
             break;
+        case FN_DECL:
+            stmt->body._fn_decl = malloc(sizeof(FnDeclStmt));
+            fnDeclnit(stmt->body._fn_decl);
+            break;
+        case RETURN_STMT:
+            stmt->body._ret = malloc(sizeof(ReturnStmt));
+            stmt->body._ret->ret_val = NULL;
+            break;
     }
     return stmt;
 }
@@ -73,6 +83,16 @@ void freeStmt(Stmt *stmt){
             freeExpr(stmt->body._var_decl->init_expr);
             free(stmt->body._var_decl);
             break;
+        case FN_DECL:
+            freeStmt(stmt->body._fn_decl->body);
+            free(stmt->body._fn_decl->args.names);
+            free(stmt->body._fn_decl->args.symbols);
+            free(stmt->body._fn_decl);
+            break;
+        case RETURN_STMT:
+            freeExpr(stmt->body._ret->ret_val);
+            free(stmt->body._ret);
+            break;
         case BREAK_STMT:
         case SKIP_STMT:
             break;
@@ -103,4 +123,25 @@ void freeStmtList(StmtList* list){
         list->stmt = NULL;
     }
     list->count = 0;
+}
+
+void fnDeclnit(FnDeclStmt* decl){
+    decl->arity = 0;
+    decl->symbol = NULL;
+    decl->body = NULL;
+
+    decl->args.capacity= 0;
+    decl->args.names = NULL;
+    decl->args.symbols = NULL;
+}
+
+void fnDeclAddParam(FnDeclStmt* decl, Token name){
+    if(decl->arity + 1 >= decl->args.capacity){
+        size_t old_capacity = decl->args.capacity;
+        decl->args.capacity = growCapacity(old_capacity);
+        decl->args.names = growArray(sizeof(Token), decl->args.names, old_capacity, decl->args.capacity);
+        decl->args.symbols = growArray(sizeof(Symbol*), decl->args.symbols, old_capacity, decl->args.capacity);
+    }
+    int i = decl->arity++;
+    decl->args.names[i] = name;
 }
