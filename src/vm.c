@@ -21,7 +21,9 @@ void initVM(){
     initTable(&vm.strings);
     initTable(&vm.globals);
     vm.objects = NULL;
-    vm.frame_count = 0;
+    vm.frame = vm.call_frames;
+    vm.frame->slots = vm.stack_top;
+    vm.frame_count = 1;
 }
 
 void freeVM(){
@@ -41,8 +43,8 @@ void freeObjects(){
 }
 
 InterpretResult vmInterpret(Chunk* chunk) {
-    vm.chunk = chunk;
-    vm.ip = vm.chunk->code;
+    vm.frame->chunk = chunk;
+    vm.frame->ip = vm.frame->chunk->code;
     return runVM();
 }
 
@@ -79,7 +81,7 @@ InterpretResult runVM(){
     uint8_t instruction;
     Value value;
     char buffer[256];
-
+    
     while(1){
         instruction = vmReadByte();
         switch(instruction){
@@ -87,8 +89,6 @@ InterpretResult runVM(){
                 value = vmReadConstant();
                 vmPush(value);
                 break;
-            case OP_RETURN:
-                return INTERPRET_OK;
 
             case OP_TRUE: 
                 vmPush(VALUE_BOOL(true));
@@ -191,19 +191,19 @@ InterpretResult runVM(){
             case OP_JIF:{
                 uint16_t offset = vmReadShort();
                 if(IS_FALSY(vmPeek(0))) 
-                    vm.ip += offset;
+                    vm.frame->ip += offset;
                 break;
             }
 
             case OP_JMP:{
                 uint16_t offset = vmReadShort();
-                vm.ip += offset;
+                vm.frame->ip += offset;
                 break;
             }
 
             case OP_LOOP:{
                 uint16_t offset = vmReadShort();
-                vm.ip -= offset;
+                vm.frame->ip -= offset;
                 break;
             }
 
@@ -214,7 +214,6 @@ InterpretResult runVM(){
                 printf("%s\n", buffer);
                 break;
             
-
             case OP_DEFINE_GLOB:{
                 ObjString* name = AS_STR(vmReadConstant());
                 Value init_val = vmPeek(0);
@@ -249,28 +248,69 @@ InterpretResult runVM(){
 
             case OP_LOAD_LOC:{
                 uint8_t slot = vmReadByte();
-                Value val = vm.stack[slot];
+                Value val = vm.frame->slots[slot];
                 vmPush(val);
                 break;
             }
 
             case OP_STORE_LOC:{
                 uint8_t slot = vmReadByte();
-                Value *assignee = &vm.stack[slot];
+                Value *assignee = &vm.frame->slots[slot];
                 *assignee = vmPeek(0);
                 break;
             }
 
             case OP_CALL:{
                 uint8_t argc = vmReadByte();
+                valueToString(vmPeek(argc), buffer, 256);
+                
+                printf("esp - argc [%d] : %s\n", argc, buffer);
                 // to implement
+                if(!IS_CALLABLE(vmPeek(argc))) {
+                    RuntimeError("The object is not callable\n");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                ObjCallable* fn = AS_OBJ(vmPeek(argc));
+                if(argc != fn->arity) {
+                    RuntimeError("Function %s needs %d parameters (only %d given)\n", fn->name->str, fn->arity, argc);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                if(vm.frame_count == FRAME_MAX){
+                    RuntimeError("Stack overflow\n");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                vm.frame = &vm.call_frames[vm.frame_count++];
+                vm.frame->slots = vm.stack_top - argc;
+                if(!call(fn, vm.frame)){
+                    // currently error is implemented as string
+                    ObjString* error = vm.frame->error;
+                    RuntimeError("Error occured in %s\n\t%s\n", fn->name->str, error->str);
+                    return INTERPRET_ERROR;
+                }
+                if(fn->type == NAT_FN){
+                    vm.frame_count--;
+                    Value result = vm.frame->slots[0];
+                    vm.stack_top = vm.frame->slots - 1;
+                    vm.frame = &vm.call_frames[vm.frame_count - 1];
+                }
                 break;
             }
 
             case OP_POP:
                 vmPop();
                 break;
-            
+
+            case OP_RETURN: {
+                vm.frame_count--;
+                if(vm.frame_count == 0)
+                    return INTERPRET_OK;
+                Value result = vmPop();
+                vm.stack_top = vm.frame->slots - 1;
+                vm.frame = &vm.call_frames[vm.frame_count - 1];
+                vmPush(result);
+                break;
+            }
+        
             default:
                 RuntimeError("Unknown opcode %d\n", instruction);
                 return INTERPRET_RUNTIME_ERROR;
@@ -287,16 +327,16 @@ Value vmPop(){
 }
 
 uint8_t vmReadByte(){
-    return *(vm.ip++);
+    return *(vm.frame->ip++);
 }
 
 uint16_t vmReadShort(){
-    vm.ip += 2;
-    return (uint16_t)((vm.ip[-2] << 8) | vm.ip[-1] & 0xffff);
+    vm.frame->ip += 2;
+    return (uint16_t)((vm.frame->ip[-2] << 8) | vm.frame->ip[-1] & 0xffff);
 }
 
 Value vmReadConstant() {
-    Value value = vm.chunk->constants.values[vmReadByte()];
+    Value value = vm.frame->chunk->constants.values[vmReadByte()];
     return value;
 }
 

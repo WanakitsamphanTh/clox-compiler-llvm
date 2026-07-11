@@ -58,8 +58,9 @@ InterpretResult interpret(const char* source){
         return INTERPRET_ERROR;
     };
 
-    vm.chunk = &chunk;
-    vm.ip = vm.chunk->code;
+    //vm.chunk = &chunk;
+    //vm.ip = vm.chunk->code;
 
-    return runVM();
+
+    return vmInterpret(&chunk);
 }

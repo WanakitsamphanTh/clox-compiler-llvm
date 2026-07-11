@@ -69,9 +69,11 @@ bool compile(const char* source, Chunk* chunk){
     // initialize compiler
     initCompiler();
     compiler.compiling_chunk = chunk;
+    printf("Initialized compiler\n");
 
     // Scope resolver and name binding
     resolve(&compiler.resolver, &statements);
+    printf("Resolve complete\n");
     if(compiler.resolver.has_error){
         fprintf(stderr, "Resolver error: %s", compiler.resolver.error_msg);
         successful = false;
@@ -80,6 +82,7 @@ bool compile(const char* source, Chunk* chunk){
 
     // bytecode emission
     compileStatementList(&statements);
+    printf("Compilation completed");
     if(compile_error){
         fprintf(stderr, "Compilation error: %s\n", compile_error_msg);
         successful = false;
@@ -164,7 +167,7 @@ void compileStatement(Stmt* stmt){
             symbol = decl->symbol;
             uint32_t hash = hashString(symbol->name, symbol->length);
             ObjString* name = newObjString(symbol->name, symbol->length, hash);
-            ObjFn* fn = newFunction(FN, decl->arity, name);
+            ObjFn* fn = newFunction(name, decl->arity);
 
             Chunk* saved_chunk = compiler.compiling_chunk;
             compiler.compiling_chunk = &fn->chunk;
@@ -172,13 +175,14 @@ void compileStatement(Stmt* stmt){
             compileStatement(decl->body);
             TERMINATE_IF_ERROR();
 
-            if(decl->body->stmt_list.count == 0 
-                || decl->body->stmt_list.stmt[decl->body->stmt_list.count - 1]->type != RETURN_STMT) 
+            BlockStmt *body = decl->body->body._block;
+            if(body->stmt_list.count == 0 
+                || body->stmt_list.stmt[body->stmt_list.count - 1]->type != RETURN_STMT) 
                 emitBytes(2,OP_NIL,OP_RETURN); // if the final statement is not return, return nil
 
             compiler.compiling_chunk = saved_chunk;
 
-            makeConstant(VALUE_OBJ(fn));
+            emitConstant(VALUE_OBJ(fn));
             switch(decl->symbol->type){
                 case SYM_GLOB:{
                     uint8_t global = makeIdentifierConstant(symbol->name, symbol->length);
@@ -255,6 +259,17 @@ void compileStatement(Stmt* stmt){
         case SKIP_STMT:{
             int jump = emitJump(OP_JMP);
             loopAddSkip(topLoop(&compiler.loops), jump);
+            break;
+        }
+
+        case RETURN_STMT:{
+            if(stmt->body._ret->ret_val != NULL){
+                compileExpr(stmt->body._ret->ret_val);
+                TERMINATE_IF_ERROR();
+            } else {
+                emitByte(OP_NIL);
+            }
+            emitByte(OP_RETURN);
             break;
         }
 
@@ -352,8 +367,10 @@ void compileExpr(Expr* expr){
             break;
         }
         case CALL_EXPR:
+            printf("Compiling callee\n");
             compileExpr(expr->body._call->callee); TERMINATE_IF_ERROR();
             for(int i = 0; i < expr->body._call->argc; i++){
+                printf("Compiling arg[%d]", i);
                 compileExpr(expr->body._call->argv.list[i]);
                 TERMINATE_IF_ERROR();
             }
@@ -552,6 +569,15 @@ static bool _debugStmt(Stmt* stmt, int indent){
             free(var_name);
             break;
         }
+        case FN_DECL: {
+            char* fn_name = getLexeme(stmt->body._fn_decl->name);
+            _putIndent(indent); printf("Function Declaration:\n");
+            _putIndent(indent + 1);  printf("Name: %s\n", fn_name);
+            for(int i = 0; i < stmt->body._fn_decl->arity; i++){
+                _putIndent(indent + 1);  printf("arg[%d]: %s\n", i, stmt->body._fn_decl->args.names[i]);
+            }
+            free(fn_name);
+        }
     }
     return true;
 }
@@ -617,7 +643,7 @@ static bool _debugExpr(Expr* expr, int indent){
             _debugExpr(expr->body._assign->val, indent+1);
             free(var_name);
             break;
-        case ARR_EXPR:
+        case ARR_EXPR:{
             _putIndent(indent++); printf("Array of [%d] elements\n", expr->body._arr->count);
             int i;
             for(i = 0; i < expr->body._arr->count; i++){
@@ -625,9 +651,20 @@ static bool _debugExpr(Expr* expr, int indent){
                                     _debugExpr(expr->body._unary->right, 0);
             }
             break;
-    }
+        }
+        case CALL_EXPR:
+            _putIndent(indent++); printf("Call\n");
+            _putIndent(indent); printf("callee: \n", indent + 1);
+            _debugExpr(expr->body._call->callee, indent + 2);
+            _debugExpr(expr->body._call->callee, indent + 1);
+            for(int i = 0; i < expr->body._call->argc; i++){
+                _putIndent(indent); printf("arg[%d]: \n", i + 1);
+                _debugExpr(expr->body._call->argv.list[i], indent + 2);
+            }
+        }
 
     return true;
+    
 }
 
 #undef COMPILE_ERROR

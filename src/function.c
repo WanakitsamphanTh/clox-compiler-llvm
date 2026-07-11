@@ -8,65 +8,39 @@ void free_obj_fn(void* obj){
     freeChunk(&fn->chunk);
 }
 
-ObjCallable* newFunction(FunctionType type, int arity, ObjString* name, Value* (*_call)(Value*)){
-    ObjCallable* fn;
-    switch(type){
-        case NAT_FN:
-            fn = AllocateObj(OBJ_FN, NULL, sizeof(ObjNativeFn));
-            fn->call = _call;
-            break;
-        case FN:{
-            fn = AllocateObj(OBJ_FN, &free_obj_fn, sizeof(ObjFn));
-            fn->call = _fn_call;
-            ObjFn* obj_fn = fn;
-            initChunk(&obj_fn->chunk);
-            break;
-        }
-    }
-    fn->arity = arity;
-    fn->name = name;
+ObjCallable* newFunction(ObjString* name, int arity){
+    ObjFn* fn = AllocateObj(OBJ_CALLABLE, NULL, sizeof(ObjFn));
+    fn->invoke.name = name;
+    fn->invoke.arity = arity;
+    fn->invoke.type = FN;
+    fn->chunk = newChunk();
+    return fn;
+}
+ObjCallable* newNativeFunction(ObjString* name, int arity, NativeFn callee){
+    ObjNativeFn* fn = AllocateObj(OBJ_CALLABLE, NULL, sizeof(ObjNativeFn));
+    fn->fn = callee;
+    fn->invoke.type = NAT_FN;
+    fn->invoke.arity = arity;
+    fn->invoke.name = name;
     return fn;
 }
 
-
-Value _fn_call(ErrorHandler* _, Value* args){
-    // user-defined functions do not need error handler yet
-}
-
-Value _nat_scan(ErrorHandler* handler, Value* _){
-    char buffer[256];
-    scanf("%s", buffer);
-    int len = stdlen(buffer);
-    return VALUE_OBJ(makeObjString(buffer, len));
-}
-
-Value _nat_scan_ln(ErrorHandler* handler, Value* _){
-    char buffer[256];
-    scanf("%s", buffer);
-    gets_s(buffer, 256);
-    int len = stdlen(buffer);
-    return VALUE_OBJ(makeObjString(buffer, len));
-}
-
-Value _nat_scan_num(ErrorHandler* handler, Value* _){
-    double val;
-    scanf("%lf", &val);
-    return VALUE_NUM(val);
-}
-
-Value _nat_clock(ErrorHandler* handler, Value* _){
-    time_t now;
-    time(&now); 
-    return VALUE_NUM(now);
-}
-
-Value _nat_map(ErrorHandler* handler, Value* args){
-    if(args[0].type != OBJ_VALUE || args[1].type != OBJ_VALUE) return VALUE_NIL;
-    Obj* arr_obj = args[0].val.obj;
-    Obj* fn_obj = args[1].val.obj;
-    if(arr_obj->type != OBJ_ARRAY || fn_obj->type != OBJ_FN) return VALUE_NIL;
-    ObjArray* array = arr_obj;
-    ObjCallable* fn = fn_obj;
-
-    return VALUE_NIL;
+bool call(ObjCallable *callable, CallFrame *frame){
+    frame->fn = callable;
+    frame->error = NULL;
+    switch(callable->type){
+        case FN:{
+            ObjFn *fn = callable;
+            frame->ip = fn->chunk.code;
+            frame->chunk = &fn->chunk;
+            return true;
+        }
+        case NAT_FN:{
+            ObjNativeFn *fn = callable;
+            Value result = fn->fn(frame);
+            if(frame->error) return false;
+            frame->slots[0] = result;
+            return true;
+        }
+    }
 }

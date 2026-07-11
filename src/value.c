@@ -177,6 +177,9 @@ int valueToString(Value v, char* buffer, int max_length){
                     }
                     break;
                 }
+                case OBJ_CALLABLE:
+                    WRITE("<Callable Object: %s>", ((ObjCallable*) v.val.obj)->name->str);
+                    break;
                 default:
                     WRITE("<Object Instance>");
             }

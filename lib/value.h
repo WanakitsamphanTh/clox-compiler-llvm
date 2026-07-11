@@ -7,7 +7,7 @@ typedef enum {
     OBJ_INSTANCE,
     OBJ_STRING,
     OBJ_ARRAY,
-    OBJ_FN
+    OBJ_CALLABLE
 } ObjType;
 
 typedef struct _Obj {
@@ -80,6 +80,7 @@ bool compareValue(Value, Value);
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
 #define IS_STR(value) isObjType(value, OBJ_STRING)
 #define IS_ARRAY(value) isObjType(value, OBJ_ARRAY)
+#define IS_CALLABLE(value) isObjType(value, OBJ_CALLABLE)
 
 #define IS_TRUTHY(value) (((value).type == BOOL_VALUE) && ((value).val.b == true))
 #define IS_FALSY(value) !IS_TRUTHY(value)

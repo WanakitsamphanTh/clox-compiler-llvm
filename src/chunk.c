@@ -8,6 +8,7 @@ static int simpleInstruction(const char*, int);
 static int jumpInstruction(const char*, int, const Chunk*, int);
 static int constantInstruction(const char*, const Chunk*, int);
 static int arrayInstruction(const char*, const Chunk*, int);
+static int callInstruction(const char*, const Chunk*, int);
 int localInstruction(const char*, const Chunk*, int);
 
 Chunk newChunk() {
@@ -116,6 +117,10 @@ int disassembleInstruction(const Chunk* chunk, int offset){
             
         case OP_PRINT:
             return simpleInstruction("OP_PRINT", offset);
+
+        case OP_CALL:
+            return callInstruction("OP_CALL", chunk, offset);
+    
         default:
             fprintf(stderr, "unknown opcode %d\n", op);
             return offset + 1;
@@ -170,7 +175,12 @@ int jumpInstruction(const char* instruction, int sgn, const Chunk* chunk, int of
     return offset + 3;
 }
 
-static int arrayInstruction(const char* instruction, const Chunk* chunk, int offset){
+ int arrayInstruction(const char* instruction, const Chunk* chunk, int offset){
+    printf("%-16s %04d\n", instruction, chunk->code[offset + 1]);
+    return offset + 2;
+}
+
+static int callInstruction(const char* instruction, const Chunk* chunk, int offset){
     printf("%-16s %04d\n", instruction, chunk->code[offset + 1]);
     return offset + 2;
 }

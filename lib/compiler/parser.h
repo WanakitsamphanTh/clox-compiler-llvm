@@ -37,6 +37,7 @@ static Stmt* parseWhile();
 static Stmt* parseFor();
 static Stmt* parseSkip();
 static Stmt* parseBreak();
+static Stmt* parseReturn();
 static Stmt* parseExprStmt();
 
 static Expr* parseExpr();
@@ -53,5 +54,6 @@ static Expr* parseArray();
 static Expr* parseGroup();
 static Expr* parseLiteral();
 static Expr* parseVarExpr();
+static Expr* parseCallExpr();
 
 #endif

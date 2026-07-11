@@ -3,6 +3,7 @@
 #include "compiler/expression.h"
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 
 #define match(...) matchAny(__VA_ARGS__,TOKEN_NONE)
 
@@ -161,11 +162,16 @@ Stmt* parseFnDecl(){
             fnDeclAddParam(stmt->body._fn_decl, id);
         } while(match(TOKEN_COMMA));
     }
-    consume(TOKEN_RIGHT_PAREN, "expect closng ')' after parameters"); END_PARSING_IF_ERROR();
+    consume(TOKEN_RIGHT_PAREN, "expect closing ')' after parameters"); END_PARSING_IF_ERROR();
+    consume(TOKEN_LEFT_BRACE, "Expect '{' after function signature"); END_PARSING_IF_ERROR();
     stmt->body._fn_decl->body = parseBlock(); END_PARSING_IF_ERROR();
 
     end_parsing:
-        RETURN_STMT(stmt);
+    if(parser.has_error) {
+        freeStmt(stmt);
+        return NULL;
+        } 
+    return stmt;
 }
 
 Stmt* parseStmt(){
@@ -176,7 +182,19 @@ Stmt* parseStmt(){
     if(match(TOKEN_LEFT_BRACE)) return parseBlock();
     if(match(TOKEN_SKIP)) return parseSkip();
     if(match(TOKEN_BREAK)) return parseBreak();
+    if(match(TOKEN_RETURN)) return parseReturn();
     return parseExprStmt();    
+}
+
+Stmt* parseReturn(){
+    Stmt* stmt = newStmt(RETURN_STMT);
+    if(!check(TOKEN_SEMICOLON)){
+        stmt->body._ret->ret_val = parseExpr();
+        END_PARSING_IF_ERROR();
+    }
+    consume(TOKEN_SEMICOLON, "Expect semicolon after return");
+    end_parsing:
+        RETURN_STMT(stmt);
 }
 
 Stmt* parsePrint(){
@@ -525,10 +543,45 @@ Expr* parseUnary() {
         expr->body._unary->op = op;
         expr->body._unary->right = right;
     } else {
-        return parsePrimary();
+        return parseCallExpr();
     }
 
     end_parsing: RETURN_EXPR(expr);
+}
+
+Expr* parseCallExpr(){
+    Expr* expr = parsePrimary(); END_PARSING_IF_ERROR();
+    Expr* arg = NULL;
+    Expr* callee = NULL;
+    while(match(TOKEN_LEFT_PAREN)){
+        printf("Parsing function\n");
+        callee = expr;
+        expr = newExpr(CALL_EXPR);
+        expr->body._call->callee = callee;
+        callee = NULL;
+        if(!check(TOKEN_RIGHT_PAREN)){
+            int i = 0;
+            do{
+                printf("Parsing argument #%d ", i++);
+                arg = parseExpr(); END_PARSING_IF_ERROR();
+                printf("arg=%p type=%d\n", arg, arg ? arg->type : -1);
+                printf("[Adding] \n");
+                callExprAddParam(expr->body._call, arg);
+                arg = NULL;
+                printf("[Done]\n");
+            } while(match(TOKEN_COMMA));
+        }
+        consume(TOKEN_RIGHT_PAREN, "Expect ')' after parameters");
+        END_PARSING_IF_ERROR();
+    }
+    end_parsing:
+    if(parser.has_error) {
+        freeExpr(expr);
+        freeExpr(callee);
+        freeExpr(arg);
+        return NULL;
+    }
+    return expr;
 }
 
 Expr* parsePrimary(){
@@ -537,13 +590,14 @@ Expr* parsePrimary(){
     }
     else if(match(TOKEN_IDENTIFIER)){
         return parseVarExpr();
-    }
-    else if(match(TOKEN_NUMBER, TOKEN_STRING, TOKEN_TRUE, TOKEN_FALSE, TOKEN_NIL)){
+    } else if(match(TOKEN_NUMBER, TOKEN_STRING, TOKEN_TRUE, TOKEN_FALSE, TOKEN_NIL)){
         return parseLiteral();
     } else if(match(TOKEN_LEFT_BRACE)){
         return parseArray();
     } else {
-        PARSER_ERROR("Invalid token");
+        char buffer[32];
+        memcpy(buffer, parser.current->start, parser.current->length);
+        PARSER_ERROR("Invalid token '%s' at line %d", parser.current->line, buffer);
         return NULL;
     }
 }

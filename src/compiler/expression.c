@@ -82,6 +82,7 @@ Expr* newExpr(ExprType type){
         case CALL_EXPR:
             expr->body._call = malloc(sizeof(CallExpr));
             callExprInit(expr->body._call);
+            break;
         default:
             free(expr);
             return NULL;
@@ -131,6 +132,7 @@ void freeExpr(Expr *expr){
             freeExpr(expr->body._call->callee);
             free(expr->body._call);
         }
+        break;
     }
 
     free(expr);
@@ -184,11 +186,23 @@ void callExprInit(CallExpr* call){
 }
 
 void callExprAddParam(CallExpr* call, Expr* arg){
-    if(call->argc + 1 >= call->argv.capacity){
+    printf("call=%p argc=%zu capacity=%zu list=%p\n",
+        call,
+        call->argc,
+        call->argv.capacity,
+        call->argv.list
+    );
+    if(call->argc + 1 > call->argv.capacity){
         size_t old_capacity = call->argv.capacity;
         call->argv.capacity = growCapacity(old_capacity);
         call->argv.list = growArray(sizeof(Expr*), call->argv.list, old_capacity, call->argv.capacity);
     }
-    int i = call->argc++;
+    int i  = call->argc++;
+    printf("call=%p argc=%zu capacity=%zu list=%p\n",
+        call,
+        call->argc,
+        call->argv.capacity,
+        call->argv.list
+    );
     call->argv.list[i] = arg;
 }

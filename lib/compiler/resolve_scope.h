@@ -64,7 +64,7 @@ typedef struct {
 
 void initResolver(ScopeResolver*);
 void freeScopesAndSymbols();
-void beginScope(ScopeResolver*);
+void beginScope(ScopeResolver*,ScriptType);
 void endScope(ScopeResolver*);
 bool scopeAddLocal(Scope*, Symbol*);
 Symbol* lookUpSymbol(ScopeResolver*, const char*, size_t);

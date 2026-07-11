@@ -1,0 +1,19 @@
+fun add(a,b){
+    print "inside add";
+    print a;
+    print b;
+    print "exit add";
+    return a + b;
+}
+
+fun arrayOf(a){
+    return {a,a+1,a+2,a+3,a+4,a+5};
+}
+
+print "result = " + add(1,10);
+
+fun x(){
+    return 10;
+}
+
+print x();

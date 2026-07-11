@@ -6,45 +6,57 @@
 typedef struct _Value Value;
 typedef struct _Obj Obj;
 typedef struct _FnDeclStmt FnDeclStmt;
+typedef struct _CallFrame CallFrame;
 
-typedef struct {
-    Obj* error;
-} ErrorHandler;
+typedef struct _VM VM;
+extern VM vm;
+extern Chunk newChunk();
 
 typedef enum {
     NAT_FN,
     FN
 } FunctionType;
 
-typedef struct {
+typedef struct _ObjCallable ObjCallable;
+typedef Value (*NativeFn)(CallFrame*);
+
+typedef struct _ObjCallable {
     Obj obj;
     int arity;
+    FunctionType type;
     ObjString* name;
-    ErrorHandler handler;
-    Value (*call)(ErrorHandler*, Value*);
-} ObjCallable, ObjNativeFn;
+} ObjCallable;
 
 typedef struct {
-    ObjCallable callee;
+    ObjCallable invoke;
+    NativeFn fn;
+} ObjNativeFn;
+
+typedef struct {
+    ObjCallable invoke;
     Chunk chunk;
 } ObjFn;
 
-typedef struct {
-    ObjCallable fn;
+typedef struct _CallFrame {
+    ObjCallable* fn;
     uint8_t* ip;
-    Value* slot;
+    Value* slots;
+    Chunk* chunk;
+    Obj* error;
 } CallFrame;
 
-ObjCallable* newFunction(FunctionType type, int arity, ObjString* name);
+ObjCallable* newFunction(ObjString* name, int arity);
+ObjCallable* newNativeFunction(ObjString* name, int arity, NativeFn callee);
 
 #define IS_FUNCTION(val) isObjType(val, OBJ_FN)
 #define AS_FUNCTION(val) ((ObjCallable*)AS_OBJ(val))
 
-Value _nat_scan(ErrorHandler*, Value*);
-Value _nat_scan_ln(ErrorHandler*, Value*);
-Value _nat_scan_num(ErrorHandler*, Value*);
-Value _nat_clock(ErrorHandler*, Value*);
-Value _nat_map(ErrorHandler*, Value*);
+Value _nat_scan(CallFrame*);
+Value _nat_scan_ln(CallFrame*);
+Value _nat_scan_num(CallFrame*);
+Value _nat_clock(CallFrame*);
+Value _nat_map(CallFrame*);
 
+bool call(ObjCallable*, CallFrame*);
 
 #endif

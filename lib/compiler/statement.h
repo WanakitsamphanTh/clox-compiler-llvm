@@ -73,7 +73,7 @@ typedef struct _FnDeclStmt {
         size_t capacity;
     } args;
 
-    BlockStmt* body;
+    Stmt* body;
 
 } FnDeclStmt;
 
