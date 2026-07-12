@@ -1,0 +1,11 @@
+print "========Test range===========";
+var x = range(0,10,1);
+print x;
+print "========Test len===========";
+print len(x);
+print "========Test pow===========";
+print "input x: ";
+x = scanNumber();
+print "input y: ";
+var y = scanNumber();
+print "x^y = " + pow(x,y);

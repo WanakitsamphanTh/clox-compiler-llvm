@@ -515,7 +515,7 @@ Expr* parseFactor(){
     expr = parseUnary();
     END_PARSING_IF_ERROR();
 
-    while(match(TOKEN_STAR, TOKEN_SLASH)){
+    while(match(TOKEN_STAR, TOKEN_SLASH, TOKEN_PERCENT)){
         left = expr;
         op = previous();
         right = parseUnary();

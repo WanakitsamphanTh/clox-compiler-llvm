@@ -6,6 +6,9 @@ Value _nat_scan(VM*);
 Value _nat_scan_ln(VM*);
 Value _nat_scan_num(VM*);
 Value _nat_clock(VM*);
+Value _nat_range(VM*);
+Value _nat_len(VM*);
+Value _nat_pow(VM*);
 
 void defineNativeFunctions(void*, void (*defineNative)(void*, const char*, int, NativeFn));
 

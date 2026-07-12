@@ -20,6 +20,7 @@ typedef enum {
     OP_SUB,
     OP_MULT,
     OP_DIV,
+    OP_MOD,
 
     // Boolean algebra and comparison
     OP_AND,

@@ -151,6 +151,11 @@ InterpretResult runVM(VM* vm){
                     c.type = OBJ_VALUE;
                     c.val.obj = concatObjString(&vm->heap, first, second);
                     vmPush(vm, c);
+                } if(IS_ARRAY(vmPeek(vm, 1)) && IS_ARRAY(vmPeek(vm, 0))){
+                    Value b = vmPop(vm);
+                    Value a = vmPop(vm);
+                    ObjArray *array = concatObjArray(&vm->heap, AS_OBJ(a), AS_OBJ(b));
+                    vmPush(vm, VALUE_OBJ(array));
                 } else
                     ARITH_BINARY_OP(+);
                 break;
@@ -161,6 +166,17 @@ InterpretResult runVM(VM* vm){
                 ARITH_BINARY_OP(*); break;
             case OP_DIV:
                 ARITH_BINARY_OP(/); break;
+            case OP_MOD:{ 
+                    Value b = vmPop(vm); 
+                    Value a = vmPop(vm); 
+                    if(!IS_NUM(a) || !IS_NUM(b)){ 
+                        RuntimeError(vm, "Operands must be both number & number"); 
+                        return INTERPRET_RUNTIME_ERROR; 
+                    } \
+                    Value c = VALUE_NUM(((int) AS_NUM(a)) % ((int) AS_NUM(b))); 
+                    vmPush(vm, c); 
+                }
+                break;
             case OP_AND: 
                 BOOL_BINARY_OP(&&); break;
             case OP_OR:

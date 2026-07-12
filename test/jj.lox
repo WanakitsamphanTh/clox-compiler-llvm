@@ -1,0 +1,7 @@
+print("hello World");
+print("FCmogmogstudygram");
+
+var n = scanNumber();
+for(var i = 0;i<n; i = i + 1){
+    print("Hello");
+}

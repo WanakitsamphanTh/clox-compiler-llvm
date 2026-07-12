@@ -15,7 +15,11 @@ This is my project in implementing a compiler and LLVM in C for Lox (from Crafti
     - the formal grammar for array is \
      $ array := \{ [expression [, expression]*]? \} $
     - array/string operation (to be implemented)
-        - [ ] get/set element
+        - [ ] get/set element \
+            $ set := index = expression $ \
+            $ get := index $ \
+            $ index := [primary | call] ~ {``}[{"} expression{``}]{"}+  $ \
+            where $ call := primary [(parameters)]?$
         - [ ] slice
         - [ ] binary operation $ in: x, array \rightarrow \{true, false\} $
         - [ ] binary operation $ +: a, b \mapsto \{a_1,...a_n,b_1,...b_n\}  $

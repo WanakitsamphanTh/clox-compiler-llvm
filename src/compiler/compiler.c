@@ -403,6 +403,8 @@ void compileOperator(TokenType op, ExprType expr_type){
             emitByte(OP_MULT);  break;
         case TOKEN_SLASH:
             emitByte(OP_DIV); break;
+        case TOKEN_PERCENT:
+            emitByte(OP_MOD); break;
         
         case TOKEN_AND:
             emitByte(OP_AND); break;

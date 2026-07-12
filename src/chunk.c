@@ -62,6 +62,8 @@ int disassembleInstruction(const Chunk* chunk, int offset){
             return simpleInstruction("OP_MULT", offset);
         case OP_DIV:
             return simpleInstruction("OP_DIV", offset);
+        case OP_MOD:
+            return simpleInstruction("OP_MOD", offset);
 
         case OP_NIL:
             return simpleInstruction("OP_NIL", offset);

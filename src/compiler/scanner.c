@@ -47,6 +47,8 @@ Token scanToken(){
             token.type = TOKEN_COMMA; break;
         case '+':
             token.type = TOKEN_PLUS; break;
+        case '%':
+            token.type = TOKEN_PERCENT; break;
         case '-':
             token.type = TOKEN_MINUS; break;
         case '*':
