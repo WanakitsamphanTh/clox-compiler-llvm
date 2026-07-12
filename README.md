@@ -9,7 +9,8 @@ This is my project in implementing a compiler and LLVM in C for Lox (from Crafti
 - ObjString is implemented as variable-sized struct.
 - Constant pool has no duplicate values since `addConstant` never adds identical values.
 - A little different design regarding function objects. My VM has ObjCallable, ObjNativeFn, and ObjFn. The first is the base class for the latters. I utilize dynamic dispatch to call a function, that is, either calling a native function directly or call the wrapper function for a compiled chunk. Another subtle difference is that my functions always put return value to the first slot.
-- Every frame has error state (which is implemented as Obj* or more precisely ObjString*). It's currently used to signal that a native function has error. Ideally, I'd love to use that for script functions as well to implement error handling mechanism but I'm busy building basic stuff in the tutorial.
+- ~~Every frame has error state (which is implemented as Obj* or more precisely ObjString*). It's currently used to signal that a native function has error. Ideally, I'd love to use that for script functions as well to implement error handling mechanism but I'm busy building basic stuff in the tutorial.~~ (Problably not a good idea)
+- VM is not a global object. VM does not own string pool nor object pool. Instead, it owns a pointer to ObjHeap which stores all objects allocated throughout compile time and runtime.
 - My CLox features Array.
     - the formal grammar for array is \
      $ array := \{ [expression [, expression]*]? \} $
@@ -23,7 +24,6 @@ This is my project in implementing a compiler and LLVM in C for Lox (from Crafti
 - Some different function names and OpCodes due to personal preference.
 
 ## Note
-- **Don't know why but after implementing funciton, the program crashes when compiling call expressions but it works fine when debugging with dbg**
 - Runtime stack and constant pool is too small
 - I should optimize the loop in `addConstant()` and `lookUpSymbol()` to reduce time complexity to O(N)
 - I'm thinking about the better way to implement array at runtime
@@ -41,7 +41,6 @@ This is my project in implementing a compiler and LLVM in C for Lox (from Crafti
 - Maybe adding tuple and tuple unpacking
 - Also implementing serialization to make the bytecode portable
 - I should add constant folding in my compiler to reduce number of constants.
-- I got a problem with circle reference, but the way I solve it feels a bit inconsistent.
 - **Realized that I should have written this in C++**
 
 
