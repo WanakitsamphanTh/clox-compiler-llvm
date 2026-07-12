@@ -46,8 +46,8 @@ typedef struct _CallFrame {
     Obj* error;
 } CallFrame;
 
-ObjCallable* newFunction(ObjString* name, int arity);
-ObjCallable* newNativeFunction(ObjString* name, int arity, NativeFn callee);
+ObjCallable* newFunction(ObjHeap*, ObjString* name, int arity);
+ObjCallable* newNativeFunction(ObjHeap*, ObjString* name, int arity, NativeFn callee);
 
 #define IS_FUNCTION(val) isObjType(val, OBJ_FN)
 #define AS_FUNCTION(val) ((ObjCallable*)AS_OBJ(val))

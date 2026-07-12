@@ -6,6 +6,7 @@
 #include "compiler/expression.h"
 #include "compiler/resolve_loop.h"
 #include "compiler/resolve_scope.h"
+#include "value.h"
 
 extern Chunk* compilingChunk;
 extern bool compile_error;
@@ -19,7 +20,7 @@ static void compileExpr(Expr*);
 static void emitBytes(int,...);
 static Chunk* currentChunk();
 
-bool compile(const char*, Chunk*);
+bool compile(const char*, Chunk*, ObjHeap*);
 static void emitConstant(Value);
 static uint8_t makeConstant(Value);
 static uint8_t makeIdentifierConstant(const char*, int);
@@ -37,6 +38,7 @@ typedef struct {
     LoopStack loops;
 
     Chunk* compiling_chunk;
+    ObjHeap* heap;
 
     int depth;
 } Compiler;

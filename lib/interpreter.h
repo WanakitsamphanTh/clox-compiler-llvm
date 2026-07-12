@@ -5,7 +5,7 @@
 #include "common.h"
 
 char* readFile(const char* file_name);
-InterpretResult repl();
-InterpretResult interpretFile(const char* file_name);
+InterpretResult repl(VM* vm);
+InterpretResult interpretFile(VM* vm, const char* file_name);
 
 #endif

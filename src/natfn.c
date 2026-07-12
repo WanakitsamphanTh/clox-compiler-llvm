@@ -7,14 +7,14 @@
 Value _nat_scan(VM* vm){
     char buffer[256];
     scanf("%s", buffer);
-    ObjString* input = makeObjString(buffer, strlen(buffer));
+    ObjString* input = makeObjString(&vm->heap, buffer, strlen(buffer));
     return VALUE_OBJ(input);
 }
 
 Value _nat_scan_ln(VM* vm){
     char buffer[256];
     fgets(buffer, 256, stdin);
-    ObjString* input = makeObjString(buffer, strlen(buffer));
+    ObjString* input = makeObjString(&vm->heap, buffer, strlen(buffer));
     return VALUE_OBJ(input);
 }
 
@@ -25,7 +25,7 @@ Value _nat_scan_num(VM* vm){
     if(sscanf(buffer, "%lf", &input.val.num) != 1){
         char error_msg[256];
         int n = sprintf(error_msg, "Invalid input: %s", buffer);
-        vm->frame->error = makeObjString(error_msg, n);
+        vm->frame->error = makeObjString(&vm->heap, error_msg, n);
     }
     return input;
 }

@@ -3,6 +3,7 @@
 #include "value.h"
 #include <assert.h>
 #include <string.h>
+
 void initTable(Table* table){
     table->count = 0;
     table->capacity = 0;

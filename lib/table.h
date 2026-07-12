@@ -1,13 +1,16 @@
 #ifndef TABLE_H
 #define TABLE_H
+#include "common.h"
 #include "value.h"
+
+typedef struct _ObjString ObjString;
 
 typedef struct {
     const ObjString* key;
     Value value;
 } Entry;
 
-typedef struct {
+typedef struct _Table {
     int capacity;
     int count;
     Entry* entries;

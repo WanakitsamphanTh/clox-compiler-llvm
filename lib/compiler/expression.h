@@ -80,7 +80,7 @@ struct _expression {
 
 Expr* newExpr(ExprType);
 void freeExpr(Expr*);
-bool tokenToValue(Token token, Value* val_ptr);
+bool tokenToValue(ObjHeap* heap, Token token, Value* val_ptr);
 ArrExpr* appendArrExpr(ArrExpr*, Expr*);
 bool isConstantExpr(const Expr*);
 void callExprInit(CallExpr*);

@@ -17,9 +17,10 @@ typedef struct _VM {
     Value* stack_top;
     size_t frame_count;
     CallFrame* frame;
-    Obj* objects;
-    Table strings;
+    //Obj* objects;
+    //Table strings;
     Table globals;
+    ObjHeap heap;
     Value stack[STACK_MAX];
     CallFrame* call_frames;
 } VM;
@@ -30,13 +31,11 @@ typedef enum {
     INTERPRET_RUNTIME_ERROR
 } InterpretResult;
 
-void initVM();
-void freeVM();
-InterpretResult vmInterpret(Chunk* chunk);
-InterpretResult runVM();
-void vmPush(Value value);
-Value vmPop();
-
-extern VM vm;
+void initVM(VM*);
+void freeVM(VM*);
+InterpretResult vmInterpret(VM* vm, Chunk* chunk);
+InterpretResult runVM(VM* vm);
+void vmPush(VM* vm, Value value);
+Value vmPop(VM* vm);
 
 #endif

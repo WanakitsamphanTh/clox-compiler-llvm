@@ -6,14 +6,15 @@
 #include "vm.h"
 
 int main(int argc, char** argv) {
-    initVM();
+    VM vm;
+    initVM(&vm);
 
     if(argc < 2) {
-        repl();
+        repl(&vm);
     } else {
-        interpretFile(argv[1]);
+        interpretFile(&vm, argv[1]);
     }
 
-    freeVM();
+    freeVM(&vm);
     return 0;
 }

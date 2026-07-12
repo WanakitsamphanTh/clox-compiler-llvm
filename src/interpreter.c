@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static InterpretResult interpret(const char*);
+static InterpretResult interpret(VM*,const char*);
 
 char* readFile(const char* file_name) {
     char* buffer;
@@ -25,7 +25,7 @@ char* readFile(const char* file_name) {
     return buffer;
 }
 
-InterpretResult repl() {
+InterpretResult repl(VM* vm) {
   char line[1024];
   for (;;) {
     printf("> ");
@@ -36,24 +36,24 @@ InterpretResult repl() {
     }
 
     if(strcmp(line,"\n") == 0) return INTERPRET_OK;
-    interpret(line);
+    interpret(vm, line);
   }
 }
 
-InterpretResult interpretFile(const char* file_name) {
+InterpretResult interpretFile(VM* vm, const char* file_name) {
     char* source = readFile(file_name);
     if(source == NULL) {
         fprintf(stderr, "Cannot open file %s", file_name);
         exit(-1);
     }
-    interpret(source);
+    interpret(vm, source);
     free(source);
     return INTERPRET_OK;
 }
 
-InterpretResult interpret(const char* source){
+InterpretResult interpret(VM* vm, const char* source){
     Chunk chunk = newChunk();
-    if(!compile(source, &chunk)) {
+    if(!compile(source, &chunk, &vm->heap)) {
         freeChunk(&chunk);
         return INTERPRET_ERROR;
     };
@@ -61,6 +61,5 @@ InterpretResult interpret(const char* source){
     //vm.chunk = &chunk;
     //vm.ip = vm.chunk->code;
 
-
-    return vmInterpret(&chunk);
+    return vmInterpret(vm, &chunk);
 }

@@ -28,7 +28,7 @@ void freeCompiler(){
     freeScopesAndSymbols();
 }
 
-bool compile(const char* source, Chunk* chunk){
+bool compile(const char* source, Chunk* chunk, ObjHeap* heap){
     int line = -1;
     char *lexeme;
     int i;
@@ -69,6 +69,7 @@ bool compile(const char* source, Chunk* chunk){
     // Compilation
     // initialize compiler
     initCompiler();
+    compiler.heap = heap;
     compiler.compiling_chunk = chunk;
     printf("Initialized compiler\n");
 
@@ -167,8 +168,8 @@ void compileStatement(Stmt* stmt){
             FnDeclStmt* decl = stmt->body._fn_decl;
             symbol = decl->symbol;
             uint32_t hash = hashString(symbol->name, symbol->length);
-            ObjString* name = newObjString(symbol->name, symbol->length, hash);
-            ObjFn* fn = newFunction(name, decl->arity);
+            ObjString* name = newObjString(compiler.heap, symbol->name, symbol->length, hash);
+            ObjFn* fn = newFunction(compiler.heap, name, decl->arity);
 
             Chunk* saved_chunk = compiler.compiling_chunk;
             compiler.compiling_chunk = &fn->chunk;
@@ -299,7 +300,7 @@ void compileExpr(Expr* expr){
                     emitByte(OP_NIL); break;
                 default:{
                     Value value;
-                    tokenToValue(expr->body._lit->token, &value); TERMINATE_IF_ERROR();
+                    tokenToValue(compiler.heap, expr->body._lit->token, &value); TERMINATE_IF_ERROR();
                     emitConstant(value);
                 }
             }
@@ -460,7 +461,7 @@ uint8_t makeConstant(Value value){
 }
 
 uint8_t makeIdentifierConstant(const char* name, int len){
-    ObjString *var_name = makeObjString(name, len);
+    ObjString *var_name = makeObjString(compiler.heap, name, len);
     return makeConstant(VALUE_OBJ(var_name));
 }
 

@@ -7,146 +7,154 @@
 #include "function.h"
 #include "natfn.h"
 
-VM vm;
+//VM vm;
 
-static void freeObjects();
+//static void freeObjects(VM*);
 
-static uint8_t vmReadByte();
-static Value vmReadConstant();
-static uint16_t vmReadShort();
-static void resetStack();
-static Value vmPeek(size_t);
-static void RuntimeError(const char* fmt, ...);
+static uint8_t vmReadByte(VM*);
+static Value vmReadConstant(VM*);
+static uint16_t vmReadShort(VM*);
+static void resetStack(VM*);
+static Value vmPeek(VM*, size_t);
+static void RuntimeError(VM*, const char* fmt, ...);
 static void defineNative(void*, const char* name, int arity, NativeFn fn);
 
-void initVM(){
-    resetStack();
-    initTable(&vm.strings);
-    initTable(&vm.globals);
-    vm.objects = NULL;
-    vm.call_frames = malloc(sizeof(CallFrame) * FRAME_MAX);
-    vm.frame = vm.call_frames;
-    vm.frame->slots = vm.stack_top;
-    vm.frame_count = 1;
+void initVM(VM* vm){
+    resetStack(vm);
+    //initTable(&vm->strings);
+    initObjHeap(&vm->heap);
+    initTable(&vm->globals);
+    defineNativeFunctions(vm, &defineNative);
+    //vm->objects = NULL;
+    vm->call_frames = malloc(sizeof(CallFrame) * FRAME_MAX);
+    if(vm->call_frames == NULL){
+        printf("cannot allocate call_frames\n");
+        exit(1);
+    }
+    vm->frame = vm->call_frames;
+    vm->frame->slots = vm->stack_top;
+    vm->frame_count = 1;
 }
 
-void freeVM(){
-    freeTable(&vm.strings);
-    freeTable(&vm.globals);
-    freeObjects();
-    free(vm.call_frames);
+void freeVM(VM* vm){
+    //freeObjects(vm);
+    freeObjHeap(&vm->heap);
+    free(vm->call_frames);
 }
 
-void freeObjects(){
-    Obj* obj = vm.objects;
+/*void freeObjects(VM* vm){
+    Obj* obj = vm->objects;
     Obj* next;
     while(obj){
         next = obj->next;
         freeObj(obj);
         obj = next;
     }
-}
+}*/
 
-InterpretResult vmInterpret(Chunk* chunk) {
-    vm.frame->chunk = chunk;
-    vm.frame->ip = vm.frame->chunk->code;
-    defineNativeFunctions(&vm, &defineNative);
-    return runVM();
+InterpretResult vmInterpret(VM* vm, Chunk* chunk) {
+    printf("vm=%p frame=%p call_frames=%p\n",
+       (void*)vm,
+       (void*)vm->frame,
+       (void*)vm->call_frames);
+    vm->frame->chunk = chunk;
+    vm->frame->ip = vm->frame->chunk->code;
+    return runVM(vm);
 }
 
 #define ARITH_BINARY_OP(op) do { \
-    Value b = vmPop(); \
-    Value a = vmPop(); \
+    Value b = vmPop(vm); \
+    Value a = vmPop(vm); \
     if(!IS_NUM(a) || !IS_NUM(b)){ \
-        RuntimeError("Operands must be both number & number"); \
+        RuntimeError(vm, "Operands must be both number & number"); \
         return INTERPRET_RUNTIME_ERROR; \
     } \
     Value c = VALUE_NUM(AS_NUM(a) op AS_NUM(b)); \
-    vmPush(c); \
+    vmPush(vm, c); \
     } while(0)
 
 #define COMP_BINARY_OP(op) do { \
-    Value b = vmPop(); \
-    Value a = vmPop(); \
+    Value b = vmPop(vm); \
+    Value a = vmPop(vm); \
     if(!IS_NUM(a) || !IS_NUM(b)){ \
-        RuntimeError("Operands must be both number & number"); \
+        RuntimeError(vm, "Operands must be both number & number"); \
         return INTERPRET_RUNTIME_ERROR; \
     } \
     Value c = VALUE_BOOL(AS_NUM(a) op AS_NUM(b)); \
-    vmPush(c); \
+    vmPush(vm, c); \
     } while(0)
 
 #define BOOL_BINARY_OP(op) do { \
-    Value b = vmPop(); \
-    Value a = vmPop(); \
+    Value b = vmPop(vm); \
+    Value a = vmPop(vm); \
     Value c = VALUE_BOOL(IS_TRUTHY(a) op IS_TRUTHY(b)); \
-    vmPush(c); \
+    vmPush(vm, c); \
     } while(0)
 
-InterpretResult runVM(){
+InterpretResult runVM(VM* vm){
     uint8_t instruction;
     Value value;
     char buffer[256];
     
     while(1){
-        instruction = vmReadByte();
+        instruction = vmReadByte(vm);
         switch(instruction){
             case OP_CONST:
-                value = vmReadConstant();
-                vmPush(value);
+                value = vmReadConstant(vm);
+                vmPush(vm, value);
                 break;
 
             case OP_TRUE: 
-                vmPush(VALUE_BOOL(true));
+                vmPush(vm, VALUE_BOOL(true));
                 break;
             case OP_FALSE: 
-                vmPush(VALUE_BOOL(false));
+                vmPush(vm, VALUE_BOOL(false));
                 break;
             case OP_NIL: 
-                vmPush(VALUE_NIL);
+                vmPush(vm, VALUE_NIL);
                 break;
             case OP_ARR:{
-                uint8_t size = vmReadByte();
+                uint8_t size = vmReadByte(vm);
 
                 Value* v_arr = malloc(sizeof(Value)*size);
                 uint8_t i;
 
                 // poping value for array
                 for(i = 0; i < size; i++)
-                    v_arr[i] = vmPop();
+                    v_arr[i] = vmPop(vm);
                 
-                vmPush(VALUE_OBJ(makeObjArray(size, v_arr)));
+                vmPush(vm, VALUE_OBJ(makeObjArray(&vm->heap, size, v_arr)));
 
                 free(v_arr);
                 break;
             }
 
             case OP_NEGATE:
-                if(vmPeek(0).type != NUMBER_VALUE){
-                    RuntimeError("Operand must be a number.");
+                if(vmPeek(vm, 0).type != NUMBER_VALUE){
+                    RuntimeError(vm, "Operand must be a number.");
                     return INTERPRET_RUNTIME_ERROR;
                 } else {
-                    value = vmPop();
+                    value = vmPop(vm);
                     value.val.num = -value.val.num;
-                    vmPush(value); 
+                    vmPush(vm, value); 
                 }
                 break;
             case OP_ADD:{
-                if(IS_STR(vmPeek(1))){
-                    Value b = vmPop();
-                    Value a = vmPop();
+                if(IS_STR(vmPeek(vm, 1))){
+                    Value b = vmPop(vm);
+                    Value a = vmPop(vm);
                     ObjString *first = AS_STR(a);
                     ObjString *second;
 
                     if(!IS_STR(b)){
-                        second = valueToObjString(b);
+                        second = valueToObjString(&vm->heap, b);
                     } else {
                         second = AS_STR(b);
                     }
                     Value c;
                     c.type = OBJ_VALUE;
-                    c.val.obj = concatObjString(first, second);
-                    vmPush(c);
+                    c.val.obj = concatObjString(&vm->heap, first, second);
+                    vmPush(vm, c);
                 } else
                     ARITH_BINARY_OP(+);
                 break;
@@ -162,8 +170,8 @@ InterpretResult runVM(){
             case OP_OR:
                 BOOL_BINARY_OP(||); break;
             case OP_CMPL:
-                value = vmPop();
-                vmPush(VALUE_BOOL(!IS_TRUTHY(value))); 
+                value = vmPop(vm);
+                vmPush(vm, VALUE_BOOL(!IS_TRUTHY(value))); 
                 break;
             case OP_LESS:
                 COMP_BINARY_OP(<); break;
@@ -174,8 +182,8 @@ InterpretResult runVM(){
             case OP_GREATER_EQ:
                 COMP_BINARY_OP(>=); break;
             case OP_EQ:{
-                Value b = vmPop();
-                Value a = vmPop();
+                Value b = vmPop(vm);
+                Value a = vmPop(vm);
                 Value c; 
                 if(a.type == NIL_VALUE && b.type == NIL_VALUE)
                     c = VALUE_BOOL(true);
@@ -190,179 +198,179 @@ InterpretResult runVM(){
                 } else {
                     c= VALUE_BOOL(false); 
                 }
-                vmPush(c); 
+                vmPush(vm, c); 
                 break;
             }
 
             case OP_JIF:{
-                uint16_t offset = vmReadShort();
-                if(IS_FALSY(vmPeek(0))) 
-                    vm.frame->ip += offset;
+                uint16_t offset = vmReadShort(vm);
+                if(IS_FALSY(vmPeek(vm,0))) 
+                    vm->frame->ip += offset;
                 break;
             }
 
             case OP_JMP:{
-                uint16_t offset = vmReadShort();
-                vm.frame->ip += offset;
+                uint16_t offset = vmReadShort(vm);
+                vm->frame->ip += offset;
                 break;
             }
 
             case OP_LOOP:{
-                uint16_t offset = vmReadShort();
-                vm.frame->ip -= offset;
+                uint16_t offset = vmReadShort(vm);
+                vm->frame->ip -= offset;
                 break;
             }
 
             case OP_PRINT:
-                value = vmPop();
+                value = vmPop(vm);
                 memset(buffer,0,256);
                 valueToString(value, buffer, 255);
                 printf("%s\n", buffer);
                 break;
             
             case OP_DEFINE_GLOB:{
-                ObjString* name = AS_STR(vmReadConstant());
-                Value init_val = vmPeek(0);
-                tableSet(&vm.globals, name, init_val);
-                vmPop();
+                ObjString* name = AS_STR(vmReadConstant(vm));
+                Value init_val = vmPeek(vm, 0);
+                tableSet(&vm->globals, name, init_val);
+                vmPop(vm);
                 break;
             }
 
             case OP_LOAD_GLOB:{
-                ObjString* name = AS_STR(vmReadConstant());
+                ObjString* name = AS_STR(vmReadConstant(vm));
                 Value val;
-                if(!tableGet(&vm.globals, name, &val)) {
-                    RuntimeError("Unknown variable %s\n", name->str);
+                if(!tableGet(&vm->globals, name, &val)) {
+                    RuntimeError(vm, "Unknown variable %s\n", name->str);
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 Value copy = val;
-                vmPush(copy);
+                vmPush(vm, copy);
                 break;
             }
 
             case OP_STORE_GLOB:{
-                ObjString* name = AS_STR(vmReadConstant());
-                Value val = vmPeek(0);
+                ObjString* name = AS_STR(vmReadConstant(vm));
+                Value val = vmPeek(vm,0);
                 /* if the key is new, it should be error*/
-                if(tableSet(&vm.globals, name, val)) {             
-                    tableDelete(&vm.globals, name);
-                    RuntimeError("Unknown variable %s\n", name->str);
+                if(tableSet(&vm->globals, name, val)) {             
+                    tableDelete(&vm->globals, name);
+                    RuntimeError(vm, "Unknown variable %s\n", name->str);
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 break;
             }
 
             case OP_LOAD_LOC:{
-                uint8_t slot = vmReadByte();
-                Value val = vm.frame->slots[slot];
-                vmPush(val);
+                uint8_t slot = vmReadByte(vm);
+                Value val = vm->frame->slots[slot];
+                vmPush(vm, val);
                 break;
             }
 
             case OP_STORE_LOC:{
-                uint8_t slot = vmReadByte();
-                Value *assignee = &vm.frame->slots[slot];
-                *assignee = vmPeek(0);
+                uint8_t slot = vmReadByte(vm);
+                Value *assignee = &vm->frame->slots[slot];
+                *assignee = vmPeek(vm, 0);
                 break;
             }
 
             case OP_CALL:{
-                uint8_t argc = vmReadByte();
-                valueToString(vmPeek(argc), buffer, 256);
+                uint8_t argc = vmReadByte(vm);
+                valueToString(vmPeek(vm, argc), buffer, 256);
                 
                 printf("esp - argc [%d] : %s\n", argc, buffer);
                 // to implement
-                if(!IS_CALLABLE(vmPeek(argc))) {
-                    RuntimeError("The object is not callable\n");
+                if(!IS_CALLABLE(vmPeek(vm, argc))) {
+                    RuntimeError(vm, "The object is not callable\n");
                     return INTERPRET_RUNTIME_ERROR;
                 }
-                ObjCallable* fn = AS_OBJ(vmPeek(argc));
+                ObjCallable* fn = AS_OBJ(vmPeek(vm, argc));
                 if(argc != fn->arity) {
-                    RuntimeError("Function %s needs %d parameters (only %d given)\n", fn->name->str, fn->arity, argc);
+                    RuntimeError(vm, "Function %s needs %d parameters (only %d given)\n", fn->name->str, fn->arity, argc);
                     return INTERPRET_RUNTIME_ERROR;
                 }
-                if(vm.frame_count == FRAME_MAX){
-                    RuntimeError("Stack overflow\n");
+                if(vm->frame_count == FRAME_MAX){
+                    RuntimeError(vm, "Stack overflow\n");
                     return INTERPRET_RUNTIME_ERROR;
                 }
-                vm.frame = &vm.call_frames[vm.frame_count++];
-                vm.frame->slots = vm.stack_top - argc;
-                if(!call(fn, &vm)){
+                vm->frame = &vm->call_frames[vm->frame_count++];
+                vm->frame->slots = vm->stack_top - argc;
+                if(!call(fn, vm)){
                     // currently error is implemented as string
-                    ObjString* error = vm.frame->error;
-                    RuntimeError("Error occured in %s\n\t%s\n", fn->name->str, error->str);
+                    ObjString* error = vm->frame->error;
+                    RuntimeError(vm, "Error occured in %s\n\t%s\n", fn->name->str, error->str);
                     return INTERPRET_ERROR;
                 }
                 break;
             }
 
             case OP_POP:
-                vmPop();
+                vmPop(vm);
                 break;
 
             case OP_RETURN: {
-                vm.frame_count--;
-                if(vm.frame_count == 0)
+                vm->frame_count--;
+                if(vm->frame_count == 0)
                     return INTERPRET_OK;
-                Value result = vmPop();
-                vm.stack_top = vm.frame->slots - 1;
-                vm.frame = &vm.call_frames[vm.frame_count - 1];
-                vmPush(result);
+                Value result = vmPop(vm);
+                vm->stack_top = vm->frame->slots - 1;
+                vm->frame = &vm->call_frames[vm->frame_count - 1];
+                vmPush(vm, result);
                 break;
             }
         
             default:
-                RuntimeError("Unknown opcode %d\n", instruction);
+                RuntimeError(vm, "Unknown opcode %d\n", instruction);
                 return INTERPRET_RUNTIME_ERROR;
         }
     }
 }
 
-void vmPush(Value value){
-    *(vm.stack_top++) = value;
+void vmPush(VM* vm, Value value){
+    *(vm->stack_top++) = value;
 }
 
-Value vmPop(){
-    return *(--vm.stack_top);
+Value vmPop(VM* vm){
+    return *(--vm->stack_top);
 }
 
-uint8_t vmReadByte(){
-    return *(vm.frame->ip++);
+uint8_t vmReadByte(VM* vm){
+    return *(vm->frame->ip++);
 }
 
-uint16_t vmReadShort(){
-    vm.frame->ip += 2;
-    return (uint16_t)((vm.frame->ip[-2] << 8) | vm.frame->ip[-1] & 0xffff);
+uint16_t vmReadShort(VM* vm){
+    vm->frame->ip += 2;
+    return (uint16_t)((vm->frame->ip[-2] << 8) | vm->frame->ip[-1] & 0xffff);
 }
 
-Value vmReadConstant() {
-    Value value = vm.frame->chunk->constants.values[vmReadByte()];
+Value vmReadConstant(VM* vm) {
+    Value value = vm->frame->chunk->constants.values[vmReadByte(vm)];
     return value;
 }
 
-void resetStack() {
-    vm.stack_top = vm.stack;
+void resetStack(VM* vm) {
+    vm->stack_top = vm->stack;
 }
 
-static Value vmPeek(size_t dist){
-    return *(vm.stack_top - 1 - dist);
+static Value vmPeek(VM* vm, size_t dist){
+    return *(vm->stack_top - 1 - dist);
 }
 
-void RuntimeError(const char* fmt, ...){
+void RuntimeError(VM* vm, const char* fmt, ...){
     va_list args;
     va_start(args, fmt);
     vfprintf(stderr, fmt, args);
     va_end(args);
     fputs("\n", stderr);
-    resetStack();
+    resetStack(vm);
 }
 
 void defineNative(void* vm_ptr, const char* name, int arity, NativeFn fn){
     VM* vm = vm_ptr;
     size_t len = strlen(name);
-    ObjString* fn_name = makeObjString(name, len);
+    ObjString* fn_name = makeObjString(&vm->heap, name, len);
     printf("define native: %s", fn_name->str);
-    Value fn_val = VALUE_OBJ(newNativeFunction(fn_name, arity, fn));
+    Value fn_val = VALUE_OBJ(newNativeFunction(&vm->heap, fn_name, arity, fn));
     tableSet(&vm->globals, fn_name, fn_val);
     Value val;
     tableGet(&vm->globals, fn_name, &val);

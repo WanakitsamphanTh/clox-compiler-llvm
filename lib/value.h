@@ -19,9 +19,20 @@ typedef struct _Obj {
     struct _Obj* next;
 } Obj;
 
-Obj* AllocateObj(ObjType type, void (*destructor)(void*), size_t size);
 
-typedef enum {
+typedef struct _Table Table;
+typedef struct {
+    Obj* objects;
+    Table* strings;
+} ObjHeap;
+
+void initObjHeap(ObjHeap*);
+void transferObjHeap(ObjHeap*,ObjHeap*);
+void freeObjHeap(ObjHeap*);
+
+Obj* AllocateObj(ObjHeap*, ObjType type, void (*destructor)(void*), size_t size);
+
+typedef enum _ValueType {
     NIL_VALUE = 0,
 
     // Value type
@@ -85,7 +96,7 @@ bool compareValue(Value, Value);
 #define IS_TRUTHY(value) (((value).type == BOOL_VALUE) && ((value).val.b == true))
 #define IS_FALSY(value) !IS_TRUTHY(value)
 
-typedef struct {    
+typedef struct _ObjString {    
     Obj obj;
     size_t len;     /*len = strlen(str) (not including '\0')*/
     uint32_t hash;
@@ -93,10 +104,10 @@ typedef struct {
 } ObjString;
 
 uint32_t hashString(const char*, int);
-ObjString* makeObjString(const char*, int);
-ObjString* newObjString(const char*, size_t, uint32_t);
-ObjString* concatObjString(const ObjString*, const ObjString*);
-ObjString* valueToObjString(Value);
+ObjString* makeObjString(ObjHeap*, const char*, int);
+ObjString* newObjString(ObjHeap*, const char*, size_t, uint32_t);
+ObjString* concatObjString(ObjHeap*, const ObjString*, const ObjString*);
+ObjString* valueToObjString(ObjHeap*, Value);
 
 typedef struct {
     Obj obj;
@@ -104,7 +115,7 @@ typedef struct {
     Value elements[];
 } ObjArray;
 
-ObjArray* makeObjArray(size_t, Value*);
-ObjArray* concatObjArray(const ObjArray*, const ObjArray*);
+ObjArray* makeObjArray(ObjHeap*, size_t, Value*);
+ObjArray* concatObjArray(ObjHeap*, const ObjArray*, const ObjArray*);
 
 #endif

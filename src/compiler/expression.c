@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
-bool tokenToValue(Token token, Value *val_ptr){
+bool tokenToValue(ObjHeap* heap, Token token, Value *val_ptr){
     char* lexeme = getLexeme(token);
     TokenType type = token.type;
     bool successful = true;
@@ -16,7 +16,7 @@ bool tokenToValue(Token token, Value *val_ptr){
         char* literal = lexeme + 1;
         size_t len = strlen(literal); // remove the first "
 
-        ObjString* string = makeObjString(literal, len);
+        ObjString* string = makeObjString(heap, literal, len);
 
         val_ptr->type = OBJ_VALUE;
         val_ptr->val.obj = string;

@@ -9,16 +9,17 @@ void free_obj_fn(void* obj){
     freeChunk(&fn->chunk);
 }
 
-ObjCallable* newFunction(ObjString* name, int arity){
-    ObjFn* fn = AllocateObj(OBJ_CALLABLE, NULL, sizeof(ObjFn));
+ObjCallable* newFunction(ObjHeap* heap, ObjString* name, int arity){
+    ObjFn* fn = AllocateObj(heap, OBJ_CALLABLE, NULL, sizeof(ObjFn));
     fn->invoke.name = name;
     fn->invoke.arity = arity;
     fn->invoke.type = FN;
     fn->chunk = newChunk();
+    fn->invoke.obj.destructor = &free_obj_fn;
     return fn;
 }
-ObjCallable* newNativeFunction(ObjString* name, int arity, NativeFn callee){
-    ObjNativeFn* fn = AllocateObj(OBJ_CALLABLE, NULL, sizeof(ObjNativeFn));
+ObjCallable* newNativeFunction(ObjHeap* heap, ObjString* name, int arity, NativeFn callee){
+    ObjNativeFn* fn = AllocateObj(heap, OBJ_CALLABLE, NULL, sizeof(ObjNativeFn));
     fn->fn = callee;
     fn->invoke.type = NAT_FN;
     fn->invoke.arity = arity;
@@ -46,7 +47,7 @@ bool call(ObjCallable *callable, VM *vm){
             vm->frame_count--;
             vm->stack_top = vm->frame->slots - 1;
             vm->frame = &vm->call_frames[vm->frame_count - 1];
-            vmPush(result);
+            vmPush(vm, result);
             return success;
         }
     }
