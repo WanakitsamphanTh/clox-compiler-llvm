@@ -1,6 +1,7 @@
 #include "compiler/expression.h"
 #include "value.h"
 #include "vm.h"
+#include "memory.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -186,23 +187,11 @@ void callExprInit(CallExpr* call){
 }
 
 void callExprAddParam(CallExpr* call, Expr* arg){
-    printf("call=%p argc=%zu capacity=%zu list=%p\n",
-        call,
-        call->argc,
-        call->argv.capacity,
-        call->argv.list
-    );
     if(call->argc + 1 > call->argv.capacity){
         size_t old_capacity = call->argv.capacity;
         call->argv.capacity = growCapacity(old_capacity);
         call->argv.list = growArray(sizeof(Expr*), call->argv.list, old_capacity, call->argv.capacity);
     }
-    int i  = call->argc++;
-    printf("call=%p argc=%zu capacity=%zu list=%p\n",
-        call,
-        call->argc,
-        call->argv.capacity,
-        call->argv.list
-    );
+    size_t i  = call->argc++;
     call->argv.list[i] = arg;
 }

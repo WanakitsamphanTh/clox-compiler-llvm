@@ -369,10 +369,8 @@ void compileExpr(Expr* expr){
             break;
         }
         case CALL_EXPR:
-            printf("Compiling callee\n");
             compileExpr(expr->body._call->callee); TERMINATE_IF_ERROR();
             for(int i = 0; i < expr->body._call->argc; i++){
-                printf("Compiling arg[%d]", i);
                 compileExpr(expr->body._call->argv.list[i]);
                 TERMINATE_IF_ERROR();
             }

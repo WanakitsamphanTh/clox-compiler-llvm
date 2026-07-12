@@ -1,2 +1,3 @@
 *.exe
 compile.ps1
+compile.sh

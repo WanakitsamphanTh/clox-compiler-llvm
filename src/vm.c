@@ -53,10 +53,6 @@ void freeVM(VM* vm){
 }*/
 
 InterpretResult vmInterpret(VM* vm, Chunk* chunk) {
-    printf("vm=%p frame=%p call_frames=%p\n",
-       (void*)vm,
-       (void*)vm->frame,
-       (void*)vm->call_frames);
     vm->frame->chunk = chunk;
     vm->frame->ip = vm->frame->chunk->code;
     return runVM(vm);
@@ -277,9 +273,6 @@ InterpretResult runVM(VM* vm){
             case OP_CALL:{
                 uint8_t argc = vmReadByte(vm);
                 valueToString(vmPeek(vm, argc), buffer, 256);
-                
-                printf("esp - argc [%d] : %s\n", argc, buffer);
-                // to implement
                 if(!IS_CALLABLE(vmPeek(vm, argc))) {
                     RuntimeError(vm, "The object is not callable\n");
                     return INTERPRET_RUNTIME_ERROR;
@@ -369,12 +362,12 @@ void defineNative(void* vm_ptr, const char* name, int arity, NativeFn fn){
     VM* vm = vm_ptr;
     size_t len = strlen(name);
     ObjString* fn_name = makeObjString(&vm->heap, name, len);
-    printf("define native: %s", fn_name->str);
+    //printf("define native: %s", fn_name->str);
     Value fn_val = VALUE_OBJ(newNativeFunction(&vm->heap, fn_name, arity, fn));
     tableSet(&vm->globals, fn_name, fn_val);
     Value val;
     tableGet(&vm->globals, fn_name, &val);
-    char buffer[256];
-    valueToString(val, buffer, 256);
-    printf("\n%s\n", buffer);
+    //char buffer[256];
+    //valueToString(val, buffer, 256);
+    //printf("\n%s\n", buffer);
 }

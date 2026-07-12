@@ -554,7 +554,6 @@ Expr* parseCallExpr(){
     Expr* arg = NULL;
     Expr* callee = NULL;
     while(match(TOKEN_LEFT_PAREN)){
-        printf("Parsing function\n");
         callee = expr;
         expr = newExpr(CALL_EXPR);
         expr->body._call->callee = callee;
@@ -562,13 +561,9 @@ Expr* parseCallExpr(){
         if(!check(TOKEN_RIGHT_PAREN)){
             int i = 0;
             do{
-                printf("Parsing argument #%d ", i++);
                 arg = parseExpr(); END_PARSING_IF_ERROR();
-                printf("arg=%p type=%d\n", arg, arg ? arg->type : -1);
-                printf("[Adding] \n");
                 callExprAddParam(expr->body._call, arg);
                 arg = NULL;
-                printf("[Done]\n");
             } while(match(TOKEN_COMMA));
         }
         consume(TOKEN_RIGHT_PAREN, "Expect ')' after parameters");
@@ -597,7 +592,7 @@ Expr* parsePrimary(){
     } else {
         char buffer[32];
         memcpy(buffer, parser.current->start, parser.current->length);
-        PARSER_ERROR("Invalid token '%s' at line %d", parser.current->line, buffer);
+        PARSER_ERROR("Invalid token '%s' at line %d", buffer,  parser.current->line);
         return NULL;
     }
 }
