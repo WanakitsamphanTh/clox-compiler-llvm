@@ -1,6 +1,7 @@
 #include "value.h"
 #include "memory.h"
 #include "vm.h"
+#include "function.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>

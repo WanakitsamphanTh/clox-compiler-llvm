@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include "function.h"
+#include "natfn.h"
 
 VM vm;
 
@@ -15,12 +17,14 @@ static uint16_t vmReadShort();
 static void resetStack();
 static Value vmPeek(size_t);
 static void RuntimeError(const char* fmt, ...);
+static void defineNative(void*, const char* name, int arity, NativeFn fn);
 
 void initVM(){
     resetStack();
     initTable(&vm.strings);
     initTable(&vm.globals);
     vm.objects = NULL;
+    vm.call_frames = malloc(sizeof(CallFrame) * FRAME_MAX);
     vm.frame = vm.call_frames;
     vm.frame->slots = vm.stack_top;
     vm.frame_count = 1;
@@ -30,6 +34,7 @@ void freeVM(){
     freeTable(&vm.strings);
     freeTable(&vm.globals);
     freeObjects();
+    free(vm.call_frames);
 }
 
 void freeObjects(){
@@ -45,6 +50,7 @@ void freeObjects(){
 InterpretResult vmInterpret(Chunk* chunk) {
     vm.frame->chunk = chunk;
     vm.frame->ip = vm.frame->chunk->code;
+    defineNativeFunctions(&vm, &defineNative);
     return runVM();
 }
 
@@ -281,17 +287,11 @@ InterpretResult runVM(){
                 }
                 vm.frame = &vm.call_frames[vm.frame_count++];
                 vm.frame->slots = vm.stack_top - argc;
-                if(!call(fn, vm.frame)){
+                if(!call(fn, &vm)){
                     // currently error is implemented as string
                     ObjString* error = vm.frame->error;
                     RuntimeError("Error occured in %s\n\t%s\n", fn->name->str, error->str);
                     return INTERPRET_ERROR;
-                }
-                if(fn->type == NAT_FN){
-                    vm.frame_count--;
-                    Value result = vm.frame->slots[0];
-                    vm.stack_top = vm.frame->slots - 1;
-                    vm.frame = &vm.call_frames[vm.frame_count - 1];
                 }
                 break;
             }
@@ -355,4 +355,18 @@ void RuntimeError(const char* fmt, ...){
     va_end(args);
     fputs("\n", stderr);
     resetStack();
+}
+
+void defineNative(void* vm_ptr, const char* name, int arity, NativeFn fn){
+    VM* vm = vm_ptr;
+    size_t len = strlen(name);
+    ObjString* fn_name = makeObjString(name, len);
+    printf("define native: %s", fn_name->str);
+    Value fn_val = VALUE_OBJ(newNativeFunction(fn_name, arity, fn));
+    tableSet(&vm->globals, fn_name, fn_val);
+    Value val;
+    tableGet(&vm->globals, fn_name, &val);
+    char buffer[256];
+    valueToString(val, buffer, 256);
+    printf("\n%s\n", buffer);
 }

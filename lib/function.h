@@ -2,13 +2,14 @@
 #define FUNCTION_H
 #include "value.h"
 #include "chunk.h"
+#include "vm.h"
 
 typedef struct _Value Value;
 typedef struct _Obj Obj;
 typedef struct _FnDeclStmt FnDeclStmt;
 typedef struct _CallFrame CallFrame;
 
-typedef struct _VM VM;
+//typedef struct _VM VM;
 extern VM vm;
 extern Chunk newChunk();
 
@@ -18,7 +19,7 @@ typedef enum {
 } FunctionType;
 
 typedef struct _ObjCallable ObjCallable;
-typedef Value (*NativeFn)(CallFrame*);
+typedef Value (*NativeFn)(VM*);
 
 typedef struct _ObjCallable {
     Obj obj;
@@ -51,12 +52,6 @@ ObjCallable* newNativeFunction(ObjString* name, int arity, NativeFn callee);
 #define IS_FUNCTION(val) isObjType(val, OBJ_FN)
 #define AS_FUNCTION(val) ((ObjCallable*)AS_OBJ(val))
 
-Value _nat_scan(CallFrame*);
-Value _nat_scan_ln(CallFrame*);
-Value _nat_scan_num(CallFrame*);
-Value _nat_clock(CallFrame*);
-Value _nat_map(CallFrame*);
-
-bool call(ObjCallable*, CallFrame*);
+bool call(ObjCallable*, VM*);
 
 #endif

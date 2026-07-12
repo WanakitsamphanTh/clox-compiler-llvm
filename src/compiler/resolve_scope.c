@@ -24,6 +24,7 @@ void initResolver(ScopeResolver* resolver){
     resolver->current = resolver->global;
     resolver->has_error = false;
     resolver->slot = 0;
+    defineNativeFunctions(resolver, &resolverAddNatives);
 }
 
 void freeScopesAndSymbols(){
@@ -351,6 +352,12 @@ Symbol* scopeLookUpSymbol(Scope* scope, const char* name, size_t length){
     return NULL;
 }
 
+void resolverAddNatives(void* resolver_ptr, const char* name, int _arity, NativeFn _fn){
+    ScopeResolver *resolver = resolver_ptr;
+    size_t len = strlen(name);
+    Symbol* symbol = newSymbol(SYM_GLOB, name, len, 0, -1);
+    scopeAddLocal(resolver->global, symbol);
+}
 
 #undef RESOLVER_ERROR
 #undef TERMINATE_RESOLVER_IF_ERROR

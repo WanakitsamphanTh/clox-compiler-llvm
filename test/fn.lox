@@ -1,19 +1,32 @@
+print "====================script functions====================";
 fun add(a,b){
     print "inside add";
-    print a;
-    print b;
+    print "a = " + a;
+    print "b = " + b;
     print "exit add";
     return a + b;
 }
+print "result = " + add(1,10);
 
 fun arrayOf(a){
+    print "inside arrayOf";
+    print "a = " + a;
     return {a,a+1,a+2,a+3,a+4,a+5};
 }
 
-print "result = " + add(1,10);
+print "result = " + arrayOf(30);
 
 fun x(){
     return 10;
 }
 
 print x();
+print "====================native functions====================";
+
+print "input number: ";
+print scanNumber();
+
+print "input string: ";
+print scan();
+
+print "now: " + clock();

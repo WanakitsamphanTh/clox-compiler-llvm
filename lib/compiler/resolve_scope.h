@@ -2,6 +2,7 @@
 #define RESOLVE_SCOPE_H
 #include "common.h"
 #include "compiler/token.h"
+#include "natfn.h"
 
 #define LOCAL_MAX 256
 
@@ -69,6 +70,7 @@ void endScope(ScopeResolver*);
 bool scopeAddLocal(Scope*, Symbol*);
 Symbol* lookUpSymbol(ScopeResolver*, const char*, size_t);
 Symbol* scopeLookUpSymbol(Scope*, const char*, size_t);
+static void resolverAddNatives(void*, const char*, int, NativeFn);
 
 Symbol* newSymbol(SymbolType, const char*, const size_t, int, int);
 Scope* newScope(Scope*, int, ScriptType);
