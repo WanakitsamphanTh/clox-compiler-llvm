@@ -414,8 +414,7 @@ bool resolveExpr(ScopeResolver* resolver, Expr* expr){
             }
             
             if(symbol->type != SYM_GLOB && result.crossed_fn_boundary){
-                Scope* found_scope = result.scope;
-                symbol = resolveUpValue(resolver, symbol, found_scope, resolver->current_fn);
+                symbol = resolveUpValue(resolver, symbol, resolver->current_fn);
                 if(symbol == NULL){
                     RESOLVER_ERROR("Cannot resolve upvalue symbol at line %d\n", expr->body._assign->var.line + 1);
                     TERMINATE_RESOLVER_IF_ERROR();
@@ -435,8 +434,7 @@ bool resolveExpr(ScopeResolver* resolver, Expr* expr){
             }
             
             if(symbol->type != SYM_GLOB && result.crossed_fn_boundary){
-                Scope* found_scope = result.scope;
-                symbol = resolveUpValue(resolver, symbol, found_scope, resolver->current_fn);
+                symbol = resolveUpValue(resolver, symbol, resolver->current_fn);
                 if(symbol == NULL){
                     RESOLVER_ERROR("Cannot resolve upvalue symbol at line %d\n", expr->body._var->name.line + 1);
                     TERMINATE_RESOLVER_IF_ERROR();
@@ -474,12 +472,12 @@ bool resolveExpr(ScopeResolver* resolver, Expr* expr){
     return success;
 }
 
-Symbol* resolveUpValue(ScopeResolver* resolver, Symbol* symbol, Scope* found_scope, FnInfo* current){
+Symbol* resolveUpValue(ScopeResolver* resolver, Symbol* symbol, FnInfo* current){
     FnInfo* parent = current->parent;
     int index;
     if(parent == NULL) return NULL; // first layer function (defined in global) has no upvalue
     
-    Symbol* parent_symbol = functionLookUpSymbol(parent->scope, found_scope, symbol->name, symbol->length);
+    Symbol* parent_symbol = functionLookUpSymbol(parent->scope, symbol->name, symbol->length);
     
     if(parent_symbol != NULL) {
         // parent owns the local variable
@@ -489,7 +487,7 @@ Symbol* resolveUpValue(ScopeResolver* resolver, Symbol* symbol, Scope* found_sco
     }
     else { 
         // parent doesnt own the local variable
-        Symbol* parent_uval = resolveUpValue(resolver, symbol, found_scope, parent); // resolve first in parent
+        Symbol* parent_uval = resolveUpValue(resolver, symbol, parent); // resolve first in parent
         if(parent_uval == NULL) return NULL;
         index = fnInfoAddUpVal(current,(UpValue){.type = UVAL_UVAL, .index = parent_uval->slot});
     }
@@ -523,8 +521,8 @@ Symbol* scopeLookUpSymbol(Scope* scope, const char* name, size_t length){
     return NULL;
 }
 
-Symbol* functionLookUpSymbol(Scope* fn_scope, Scope* current, const char* name, size_t length){
-    current = fn_scope;
+Symbol* functionLookUpSymbol(Scope* fn_scope, const char* name, size_t length){
+    Scope* current = fn_scope;
     while(current != NULL){
         Symbol* parent_symbol = scopeLookUpSymbol(current, name, length);
         if(parent_symbol != NULL) return parent_symbol;

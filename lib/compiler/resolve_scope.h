@@ -109,7 +109,7 @@ void endScope(ScopeResolver*);
 bool scopeAddLocal(Scope*, Symbol*);
 SymbolLookupResult lookUpSymbol(ScopeResolver*, const char*, size_t);
 Symbol* scopeLookUpSymbol(Scope*, const char*, size_t);
-Symbol* functionLookUpSymbol(Scope*, Scope*, const char*, size_t);
+Symbol* functionLookUpSymbol(Scope*, const char*, size_t);
 static void resolverAddNatives(void*, const char*, int, NativeFn);
 
 Symbol* newSymbol(SymbolType, const char*, const size_t, int, int);
@@ -125,7 +125,7 @@ int fnInfoAddUpVal(FnInfo*, UpValue);
 bool resolve(ScopeResolver*, StmtList*);
 static bool resolveStmt(ScopeResolver*, Stmt*);
 static bool resolveExpr(ScopeResolver*, Expr*);
-static Symbol* resolveUpValue(ScopeResolver*, Symbol*, Scope*,FnInfo*);
+static Symbol* resolveUpValue(ScopeResolver*, Symbol*,FnInfo*);
 
 extern SymbolPool all_symbols;
 extern ScopePool all_scopes;

@@ -12,8 +12,8 @@ static uint8_t vmReadByte(VM*);
 static Value vmReadConstant(VM*);
 static uint16_t vmReadShort(VM*);
 static void resetStack(VM*);
+static void resetFrameCall(VM*);
 static Value vmPeek(VM*, size_t);
-static void RuntimeError(VM*, const char* fmt, ...);
 static void defineNative(void*, const char* name, int arity, NativeFn fn);
 static ObjUpValue* vmCaptureValue(VM*, Value*);
 static void vmCloseUpValue(VM*, Value*);
@@ -32,6 +32,7 @@ void initVM(VM* vm){
     vm->frame = vm->call_frames;
     vm->frame->slots = vm->stack_top;
     vm->frame_count = 1;
+    vm->has_error = false;
     vm->upvalues = NULL;
 }
 
@@ -60,7 +61,7 @@ InterpretResult vmInterpret(VM* vm, Chunk* chunk) {
     Value b = vmPop(vm); \
     Value a = vmPop(vm); \
     if(!IS_NUM(a) || !IS_NUM(b)){ \
-        RuntimeError(vm, "Operands must be both number & number"); \
+        runtimeError(vm, "Operands must be both number & number"); \
         return INTERPRET_RUNTIME_ERROR; \
     } \
     Value c = VALUE_NUM(AS_NUM(a) op AS_NUM(b)); \
@@ -71,7 +72,7 @@ InterpretResult vmInterpret(VM* vm, Chunk* chunk) {
     Value b = vmPop(vm); \
     Value a = vmPop(vm); \
     if(!IS_NUM(a) || !IS_NUM(b)){ \
-        RuntimeError(vm, "Operands must be both number & number"); \
+        runtimeError(vm, "Operands must be both number & number"); \
         return INTERPRET_RUNTIME_ERROR; \
     } \
     Value c = VALUE_BOOL(AS_NUM(a) op AS_NUM(b)); \
@@ -125,7 +126,7 @@ InterpretResult runVM(VM* vm){
 
             case OP_NEGATE:
                 if(vmPeek(vm, 0).type != NUMBER_VALUE){
-                    RuntimeError(vm, "Operand must be a number.");
+                    runtimeError(vm, "Operand must be a number.");
                     return INTERPRET_RUNTIME_ERROR;
                 } else {
                     value = vmPop(vm);
@@ -168,7 +169,7 @@ InterpretResult runVM(VM* vm){
                     Value b = vmPop(vm); 
                     Value a = vmPop(vm); 
                     if(!IS_NUM(a) || !IS_NUM(b)){ 
-                        RuntimeError(vm, "Operands must be both number & number"); 
+                        runtimeError(vm, "Operands must be both number & number"); 
                         return INTERPRET_RUNTIME_ERROR; 
                     }
                     Value c = VALUE_NUM(((long long) AS_NUM(a)) % ((long long) AS_NUM(b))); 
@@ -250,7 +251,7 @@ InterpretResult runVM(VM* vm){
                 ObjString* name = AS_STR(vmReadConstant(vm));
                 Value val;
                 if(!tableGet(&vm->globals, name, &val)) {
-                    RuntimeError(vm, "Unknown variable %s\n", name->str);
+                    runtimeError(vm, "Unknown variable %s\n", name->str);
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 Value copy = val;
@@ -264,7 +265,7 @@ InterpretResult runVM(VM* vm){
                 /* if the key is new, it should be error*/
                 if(tableSet(&vm->globals, name, val)) {             
                     tableDelete(&vm->globals, name);
-                    RuntimeError(vm, "Unknown variable %s\n", name->str);
+                    runtimeError(vm, "Unknown variable %s\n", name->str);
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 break;
@@ -272,13 +273,13 @@ InterpretResult runVM(VM* vm){
             case OP_LOAD_UVAL:{
                 ObjCallable* callable = vm->frame->fn;
                 if(callable->type != CLOSURE){
-                    RuntimeError(vm, "Unable to load upvalues outside a closure\n");
+                    runtimeError(vm, "Unable to load upvalues outside a closure\n");
                     return INTERPRET_ERROR;
                 }
                 int index = vmReadByte(vm);
                 ObjClosure* closure = (ObjClosure*) callable;
                 if(index >= closure->upvalue_count) {
-                    RuntimeError(vm, "Upvalue index out of bound\n");
+                    runtimeError(vm, "Upvalue index out of bound\n");
                     return INTERPRET_ERROR;
                 }
                 vmPush(vm, getUpValue(closure->upvalues[index]));
@@ -302,13 +303,13 @@ InterpretResult runVM(VM* vm){
             case OP_STORE_UVAL:{
                 ObjCallable* callable = vm->frame->fn;
                 if(callable->type != CLOSURE){
-                    RuntimeError(vm, "Unable to load upvalues outside a closure\n");
+                    runtimeError(vm, "Unable to load upvalues outside a closure\n");
                     return INTERPRET_ERROR;
                 }
                 int index = vmReadByte(vm);
                 ObjClosure* closure = (ObjClosure*) callable;
                 if(index >= closure->upvalue_count) {
-                    RuntimeError(vm, "Upvalue index out of bound\n");
+                    runtimeError(vm, "Upvalue index out of bound\n");
                     return INTERPRET_ERROR;
                 }
                 setUpValue(closure->upvalues[index], vmPeek(vm, 0));
@@ -328,14 +329,14 @@ InterpretResult runVM(VM* vm){
                         if(uval_type == UVAL_LOC){
                             ObjUpValue* upvalue = vmCaptureValue(vm, vm->frame->slots + index);
                             if(upvalue == NULL){
-                                RuntimeError(vm, "Unable to capture the value (upvalue object allocation failed)\n");
+                                runtimeError(vm, "Unable to capture the value (upvalue object allocation failed)\n");
                                 return INTERPRET_RUNTIME_ERROR;
                             }
                             closure->upvalues[i] = upvalue;
                         }
                         else {
                             if(vm->frame->fn->type != CLOSURE){
-                                RuntimeError(vm, "Unable to use an upvalue from a non-closure function\n");
+                                runtimeError(vm, "Unable to use an upvalue from a non-closure function\n");
                                 return INTERPRET_ERROR;
                             }
                             closure->upvalues[i] = ((ObjClosure*)vm->frame->fn)->upvalues[index];
@@ -356,24 +357,21 @@ InterpretResult runVM(VM* vm){
                 uint8_t argc = vmReadByte(vm);
                 valueToString(vmPeek(vm, argc), buffer, 256);
                 if(!IS_CALLABLE(vmPeek(vm, argc))) {
-                    RuntimeError(vm, "The object is not callable\n");
+                    runtimeError(vm, "The object is not callable\n");
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 ObjCallable* fn = AS_OBJ(vmPeek(vm, argc));
                 if(argc != fn->arity) {
-                    RuntimeError(vm, "Function %s needs %d parameters (only %d given)\n", fn->name->str, fn->arity, argc);
+                    runtimeError(vm, "Function %s needs %d parameters (only %d given)\n", fn->name->str, fn->arity, argc);
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 if(vm->frame_count == FRAME_MAX){
-                    RuntimeError(vm, "Stack overflow\n");
+                    runtimeError(vm, "Stack overflow\n");
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 vm->frame = &vm->call_frames[vm->frame_count++];
                 vm->frame->slots = vm->stack_top - argc;
                 if(!call(fn, vm)){
-                    // currently error is implemented as string
-                    ObjString* error = vm->frame->error;
-                    RuntimeError(vm, "Error occured in %s\n\t%s\n", fn->name->str, error->str);
                     return INTERPRET_ERROR;
                 }
                 break;
@@ -396,7 +394,7 @@ InterpretResult runVM(VM* vm){
             }
         
             default:
-                RuntimeError(vm, "Unknown opcode %d\n", instruction);
+                runtimeError(vm, "Unknown opcode %d\n", instruction);
                 return INTERPRET_RUNTIME_ERROR;
         }
     }
@@ -428,19 +426,13 @@ void resetStack(VM* vm) {
     vm->stack_top = vm->stack;
 }
 
-static Value vmPeek(VM* vm, size_t dist){
-    return *(vm->stack_top - 1 - dist);
+void resetFrameCall(VM* vm){
+    vm->frame = vm->call_frames;
+    vm->frame_count = 1;
 }
 
-void RuntimeError(VM* vm, const char* fmt, ...){
-    va_list args;
-    va_start(args, fmt);
-    vfprintf(stderr, fmt, args);
-    va_end(args);
-    fputs("\n", stderr);
-    if(vm->frame_count != 1)
-        disassembleChunk(vm->frame->chunk, vm->frame->fn->name->str);
-    resetStack(vm);
+static Value vmPeek(VM* vm, size_t dist){
+    return *(vm->stack_top - 1 - dist);
 }
 
 void defineNative(void* vm_ptr, const char* name, int arity, NativeFn fn){
@@ -458,7 +450,6 @@ ObjUpValue* vmCaptureValue(VM* vm, Value* ref){
     // to implement
     // if found, return the value
     // if not found, return a new upvalue
-    printf("capture ref=%p\n", (void*)ref);
     UpValueNode *prev, *current;
     prev = NULL;
     current = vm->upvalues;
@@ -508,4 +499,26 @@ static void vmCloseCallFrame(VM* vm){
         closeUpValue(node->upvalue);
         free(node);
     }
+}
+
+void runtimeError(VM* vm, const char* fmt, ...){
+    va_list args;
+    vm->has_error = true;
+    va_start(args, fmt);
+    vfprintf(stderr, fmt, args);
+    va_end(args);
+    fputs("\n", stderr);
+    if(vm->frame_count != 1){
+        CallFrame* frame = vm->frame;
+        while(1){
+            if(frame == vm->call_frames) {
+                fprintf(stderr, "from script");
+                break;
+            }
+            fprintf(stderr, "from %s()\n", frame->fn->name->str);
+            frame--;
+        }
+    }
+    resetFrameCall(vm);
+    resetStack(vm);
 }

@@ -189,9 +189,13 @@ void compileStatement(Stmt* stmt){
             compiler.compiling_chunk = saved_chunk;
 
             uint8_t fn_constant = makeConstant(VALUE_OBJ(fn));
-            emitBytes(3, OP_CLOSURE, fn_constant, (uint8_t) info->upvalue_count); // OP_CLOSURE fn upvalue_count type_1 index_1 ...
-            for(int i = 0; i < info->upvalue_count; i++)
-                emitBytes(2, (uint8_t) info->upvalues[i].type, (uint8_t) info->upvalues[i].index);
+            if(info->upvalue_count == 0){
+                emitBytes(2, OP_CONST, fn_constant);
+            } else {
+                emitBytes(3, OP_CLOSURE, fn_constant, (uint8_t) info->upvalue_count); // OP_CLOSURE fn upvalue_count type_1 index_1 ...
+                for(int i = 0; i < info->upvalue_count; i++)
+                    emitBytes(2, (uint8_t) info->upvalues[i].type, (uint8_t) info->upvalues[i].index);
+            }
 
             switch(decl->symbol->type){
                 case SYM_GLOB:{

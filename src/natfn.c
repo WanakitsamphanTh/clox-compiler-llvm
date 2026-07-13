@@ -24,9 +24,8 @@ Value _nat_scan_num(VM* vm){
     Value input = VALUE_NUM(0);
     scanf("%s", buffer);
     if(sscanf(buffer, "%lf", &input.val.num) != 1){
-        char error_msg[256];
-        int n = sprintf(error_msg, "Invalid input: %s", buffer);
-        vm->frame->error = makeObjString(&vm->heap, error_msg, n);
+        runtimeError(vm, "Invalid input: %s", buffer);
+        return VALUE_NIL;
     }
     return input;
 }
@@ -38,19 +37,19 @@ Value _nat_clock(VM* vm){
 Value _nat_range(VM* vm){
     Value _start = vm->frame->slots[0];
     if(!IS_NUM(_start)) {
-        vm->frame->error = makeObjString(&vm->heap, "start must be number", 21);
+        runtimeError(vm, "start must be number");
         return VALUE_NIL;
     }
     double start = AS_NUM(_start);
     Value _end = vm->frame->slots[1];
     if(!IS_NUM(_end)){
-        vm->frame->error = makeObjString(&vm->heap, "end must be number", 19);
+        runtimeError(vm, "end must be number");
         return VALUE_NIL;
     }
     double end = AS_NUM(_end);
     Value _inc = vm->frame->slots[2];
     if(!IS_NUM(_inc)){
-        vm->frame->error = makeObjString(&vm->heap, "increment must be number", 23);
+        runtimeError(vm, "increment must be number");
         return VALUE_NIL;
     }
     double inc = AS_NUM(_inc);
@@ -79,13 +78,13 @@ Value _nat_len(VM* vm){
 Value _nat_pow(VM* vm){
     Value _base = vm->frame->slots[0];
     if(!IS_NUM(_base)){
-        vm->frame->error = makeObjString(&vm->heap, "base must be number", 20);
+        runtimeError(vm, "base must be number");
         return VALUE_NIL;
     }
     double base = AS_NUM(_base);
     Value _exp = vm->frame->slots[1];
     if(!IS_NUM(_exp)){
-        vm->frame->error = makeObjString(&vm->heap, "exponential must be number", 27);
+        runtimeError(vm, "exponent must be number");
         return VALUE_NIL;
     }
     double exp = AS_NUM(_exp);

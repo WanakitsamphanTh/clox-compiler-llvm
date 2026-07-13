@@ -27,6 +27,8 @@ typedef struct _VM {
     UpValueNode* upvalues;
     Value stack[STACK_MAX];
     CallFrame* call_frames;
+    bool has_error;
+    char err_msg[256];
 } VM;
 
 typedef enum {
@@ -41,5 +43,6 @@ InterpretResult vmInterpret(VM* vm, Chunk* chunk);
 InterpretResult runVM(VM* vm);
 void vmPush(VM* vm, Value value);
 Value vmPop(VM* vm);
+void runtimeError(VM*, const char* fmt, ...);
 
 #endif

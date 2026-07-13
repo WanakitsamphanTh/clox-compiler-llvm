@@ -29,7 +29,6 @@ ObjCallable* newNativeFunction(ObjHeap* heap, ObjString* name, int arity, Native
 
 bool call(ObjCallable *callable, VM *vm){
     vm->frame->fn = callable;
-    vm->frame->error = NULL;
     switch(callable->type){
         case FN:{
             ObjFn *fn = callable;
@@ -42,7 +41,7 @@ bool call(ObjCallable *callable, VM *vm){
             ObjNativeFn *fn = callable;
             Value result = fn->fn(vm);
             bool success = true;
-            if(vm->frame->error) success = false;
+            if(vm->has_error) return false;
             // clear stack
             vm->frame_count--;
             vm->stack_top = vm->frame->slots - 1;

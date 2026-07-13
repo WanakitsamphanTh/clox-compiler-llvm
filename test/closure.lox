@@ -31,3 +31,46 @@ var g = f(5);
 var h = g(10);
 print h("x*y = ");  # expect 'x*y = 50'
                     # having problem with multilayer closure
+
+print("\n****************** closure with get/set******************");
+fun generator(x, y){
+    fun decrement(){
+        x = x - 1;
+    }
+    fun display(){
+        print "in display(): " + x;
+    }
+    for(var i = 0; i < y; i = i + 1){
+        decrement();
+        print "after decrement: " + x;
+    }
+    return display;
+}
+
+var display = generator(5, 3);
+display();
+
+
+var increment;
+var decrement;
+fun generator_2(x,y){
+    print "default x = " + x;
+    fun inner_decrement(){
+        x = x - y;
+        print "after decrement by " + y + " = " + x;
+    }
+    decrement = inner_decrement;
+    fun inner_increment(){
+        x = x + y;
+        print "after increment by " + y + " = " + x;
+    }
+    increment = inner_increment;
+}
+
+generator_2(5,1);
+
+increment();
+decrement();
+increment();
+increment();
+decrement();

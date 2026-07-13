@@ -57,7 +57,6 @@ typedef struct _CallFrame {
     uint8_t* ip;
     Value* slots;
     Chunk* chunk;
-    Obj* error;
 } CallFrame;
 
 ObjCallable* newFunction(ObjHeap*, ObjString* name, int arity);
