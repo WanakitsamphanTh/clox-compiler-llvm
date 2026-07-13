@@ -1,0 +1,33 @@
+print("\n******************generating closures (single layered)******************");
+fun greeting_generator(title, name){
+    var _name = title + " " + name;
+    fun greet(){
+        return "Hello " + title + " " + name;
+    }
+    print "calling inside a function";
+    print greet();
+    return greet;
+}
+
+print "=========generating=========";
+var a = greeting_generator("mr", "Pai");
+var b = greeting_generator("mrs", "An");
+print "=============================";
+print a();
+print b();
+
+print("\n******************generating closure (multi-layered)******************");
+fun f(x){
+    fun g(y){
+        fun h(msg){
+            return msg + (x * y);
+        }
+        return h;
+    }
+    return g;
+}
+
+var g = f(5);
+var h = g(10);
+print h("x*y = ");  # expect 'x*y = 50'
+                    # having problem with multilayer closure

@@ -9,7 +9,9 @@ static int jumpInstruction(const char*, int, const Chunk*, int);
 static int constantInstruction(const char*, const Chunk*, int);
 static int arrayInstruction(const char*, const Chunk*, int);
 static int callInstruction(const char*, const Chunk*, int);
-int localInstruction(const char*, const Chunk*, int);
+static int localInstruction(const char*, const Chunk*, int);
+static int closureInstruction(const char*, const Chunk*, int);
+
 
 Chunk newChunk() {
     Chunk chunk = {0,0,NULL, newValueArray()};
@@ -104,6 +106,14 @@ int disassembleInstruction(const Chunk* chunk, int offset){
             return localInstruction("OP_LOAD_LOC", chunk, offset);
         case OP_STORE_LOC:
             return localInstruction("OP_STORE_LOC", chunk, offset);
+        case OP_LOAD_UVAL:
+            return localInstruction("OP_LOAD_UVAL", chunk, offset);
+        case OP_STORE_UVAL:
+            return localInstruction("OP_STORE_UVAL", chunk, offset);
+        case OP_CLOSE_UVAL:
+            return localInstruction("OP_CLOSE_UVAL", chunk, offset);
+        case OP_CLOSURE:
+            return closureInstruction("OP_CLOSURE", chunk, offset);
 
         case OP_CONST:
             return constantInstruction("OP_CONST", chunk, offset);
@@ -185,4 +195,23 @@ int jumpInstruction(const char* instruction, int sgn, const Chunk* chunk, int of
 static int callInstruction(const char* instruction, const Chunk* chunk, int offset){
     printf("%-16s %04d\n", instruction, chunk->code[offset + 1]);
     return offset + 2;
+}
+
+typedef enum {
+    UVAL_LOC,
+    UVAL_UVAL
+} UpValueType;
+const char* upvalue_type[] = {"UVAL_LOC", "UVAL_UVAL"};
+
+int closureInstruction(const char* instruction, const Chunk* chunk, int offset){
+    uint8_t fn_constant = chunk->code[++offset];
+    uint8_t count = chunk->code[++offset];
+    printf("%-16s %04d %02d\n", instruction, fn_constant, count);
+    while(count > 0){
+        UpValueType type = chunk->code[++offset];
+        uint8_t slot = chunk->code[++offset];
+        printf("     %s %d\n", upvalue_type[type], slot);
+        count--;
+    }
+    return ++offset;
 }

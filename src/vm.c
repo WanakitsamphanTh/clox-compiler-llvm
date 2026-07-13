@@ -6,10 +6,7 @@
 #include <stdarg.h>
 #include "function.h"
 #include "natfn.h"
-
-//VM vm;
-
-//static void freeObjects(VM*);
+#include "compiler/resolve_scope.h"
 
 static uint8_t vmReadByte(VM*);
 static Value vmReadConstant(VM*);
@@ -18,14 +15,15 @@ static void resetStack(VM*);
 static Value vmPeek(VM*, size_t);
 static void RuntimeError(VM*, const char* fmt, ...);
 static void defineNative(void*, const char* name, int arity, NativeFn fn);
+static ObjUpValue* vmCaptureValue(VM*, Value*);
+static void vmCloseUpValue(VM*, Value*);
+static void vmCloseCallFrame(VM*);
 
 void initVM(VM* vm){
     resetStack(vm);
-    //initTable(&vm->strings);
     initObjHeap(&vm->heap);
     initTable(&vm->globals);
     defineNativeFunctions(vm, &defineNative);
-    //vm->objects = NULL;
     vm->call_frames = malloc(sizeof(CallFrame) * FRAME_MAX);
     if(vm->call_frames == NULL){
         printf("cannot allocate call_frames\n");
@@ -34,23 +32,23 @@ void initVM(VM* vm){
     vm->frame = vm->call_frames;
     vm->frame->slots = vm->stack_top;
     vm->frame_count = 1;
+    vm->upvalues = NULL;
 }
 
 void freeVM(VM* vm){
-    //freeObjects(vm);
     freeObjHeap(&vm->heap);
     free(vm->call_frames);
-}
-
-/*void freeObjects(VM* vm){
-    Obj* obj = vm->objects;
-    Obj* next;
-    while(obj){
-        next = obj->next;
-        freeObj(obj);
-        obj = next;
+    if(vm->upvalues != NULL){
+        UpValueNode* node;
+        UpValueNode* next;
+        node = vm->upvalues;
+        while(node != NULL){
+            next = node->next;
+            free(node);
+            node = next;
+        }
     }
-}*/
+}
 
 InterpretResult vmInterpret(VM* vm, Chunk* chunk) {
     vm->frame->chunk = chunk;
@@ -151,7 +149,7 @@ InterpretResult runVM(VM* vm){
                     c.type = OBJ_VALUE;
                     c.val.obj = concatObjString(&vm->heap, first, second);
                     vmPush(vm, c);
-                } if(IS_ARRAY(vmPeek(vm, 1)) && IS_ARRAY(vmPeek(vm, 0))){
+                } else if(IS_ARRAY(vmPeek(vm, 1)) && IS_ARRAY(vmPeek(vm, 0))){
                     Value b = vmPop(vm);
                     Value a = vmPop(vm);
                     ObjArray *array = concatObjArray(&vm->heap, AS_OBJ(a), AS_OBJ(b));
@@ -172,8 +170,8 @@ InterpretResult runVM(VM* vm){
                     if(!IS_NUM(a) || !IS_NUM(b)){ 
                         RuntimeError(vm, "Operands must be both number & number"); 
                         return INTERPRET_RUNTIME_ERROR; 
-                    } \
-                    Value c = VALUE_NUM(((int) AS_NUM(a)) % ((int) AS_NUM(b))); 
+                    }
+                    Value c = VALUE_NUM(((long long) AS_NUM(a)) % ((long long) AS_NUM(b))); 
                     vmPush(vm, c); 
                 }
                 break;
@@ -271,7 +269,22 @@ InterpretResult runVM(VM* vm){
                 }
                 break;
             }
-
+            case OP_LOAD_UVAL:{
+                ObjCallable* callable = vm->frame->fn;
+                if(callable->type != CLOSURE){
+                    RuntimeError(vm, "Unable to load upvalues outside a closure\n");
+                    return INTERPRET_ERROR;
+                }
+                int index = vmReadByte(vm);
+                ObjClosure* closure = (ObjClosure*) callable;
+                if(index >= closure->upvalue_count) {
+                    RuntimeError(vm, "Upvalue index out of bound\n");
+                    return INTERPRET_ERROR;
+                }
+                vmPush(vm, getUpValue(closure->upvalues[index]));
+                break;
+            }
+            
             case OP_LOAD_LOC:{
                 uint8_t slot = vmReadByte(vm);
                 Value val = vm->frame->slots[slot];
@@ -283,6 +296,59 @@ InterpretResult runVM(VM* vm){
                 uint8_t slot = vmReadByte(vm);
                 Value *assignee = &vm->frame->slots[slot];
                 *assignee = vmPeek(vm, 0);
+                break;
+            }
+
+            case OP_STORE_UVAL:{
+                ObjCallable* callable = vm->frame->fn;
+                if(callable->type != CLOSURE){
+                    RuntimeError(vm, "Unable to load upvalues outside a closure\n");
+                    return INTERPRET_ERROR;
+                }
+                int index = vmReadByte(vm);
+                ObjClosure* closure = (ObjClosure*) callable;
+                if(index >= closure->upvalue_count) {
+                    RuntimeError(vm, "Upvalue index out of bound\n");
+                    return INTERPRET_ERROR;
+                }
+                setUpValue(closure->upvalues[index], vmPeek(vm, 0));
+                break;
+            }
+
+            case OP_CLOSURE: {
+                Value fn_value = vmReadConstant(vm);
+                uint8_t upvalue_count = vmReadByte(vm);
+                if(upvalue_count == 0) {
+                    vmPush(vm, fn_value);
+                } else {
+                    ObjClosure* closure = newClosure(&vm->heap, AS_OBJ(fn_value), upvalue_count);
+                    for(int i = 0; i < upvalue_count; i++){
+                        UpValueType uval_type = vmReadByte(vm);
+                        int index = vmReadByte(vm);
+                        if(uval_type == UVAL_LOC){
+                            ObjUpValue* upvalue = vmCaptureValue(vm, vm->frame->slots + index);
+                            if(upvalue == NULL){
+                                RuntimeError(vm, "Unable to capture the value (upvalue object allocation failed)\n");
+                                return INTERPRET_RUNTIME_ERROR;
+                            }
+                            closure->upvalues[i] = upvalue;
+                        }
+                        else {
+                            if(vm->frame->fn->type != CLOSURE){
+                                RuntimeError(vm, "Unable to use an upvalue from a non-closure function\n");
+                                return INTERPRET_ERROR;
+                            }
+                            closure->upvalues[i] = ((ObjClosure*)vm->frame->fn)->upvalues[index];
+                        }
+                    }
+                    vmPush(vm, VALUE_OBJ(closure));
+                }
+                break;
+            }
+            case OP_CLOSE_UVAL:{
+                Value* ref = vm->stack_top - 1;
+                vmCloseUpValue(vm, ref);
+                vmPop(vm);
                 break;
             }
 
@@ -322,6 +388,7 @@ InterpretResult runVM(VM* vm){
                 if(vm->frame_count == 0)
                     return INTERPRET_OK;
                 Value result = vmPop(vm);
+                vmCloseCallFrame(vm);
                 vm->stack_top = vm->frame->slots - 1;
                 vm->frame = &vm->call_frames[vm->frame_count - 1];
                 vmPush(vm, result);
@@ -371,6 +438,8 @@ void RuntimeError(VM* vm, const char* fmt, ...){
     vfprintf(stderr, fmt, args);
     va_end(args);
     fputs("\n", stderr);
+    if(vm->frame_count != 1)
+        disassembleChunk(vm->frame->chunk, vm->frame->fn->name->str);
     resetStack(vm);
 }
 
@@ -383,7 +452,60 @@ void defineNative(void* vm_ptr, const char* name, int arity, NativeFn fn){
     tableSet(&vm->globals, fn_name, fn_val);
     Value val;
     tableGet(&vm->globals, fn_name, &val);
-    //char buffer[256];
-    //valueToString(val, buffer, 256);
-    //printf("\n%s\n", buffer);
+}
+
+ObjUpValue* vmCaptureValue(VM* vm, Value* ref){
+    // to implement
+    // if found, return the value
+    // if not found, return a new upvalue
+    printf("capture ref=%p\n", (void*)ref);
+    UpValueNode *prev, *current;
+    prev = NULL;
+    current = vm->upvalues;
+    while(current != NULL && current->ref > ref){
+        prev = current;
+        current = current->next;
+    }
+    if(current != NULL && current->ref == ref) return current->upvalue;
+
+    UpValueNode* node = malloc(sizeof(UpValueNode));
+    node->ref = ref;
+    node->upvalue = newUpValue(&vm->heap, ref);
+    node->next = current;
+
+    if(prev == NULL) 
+        vm->upvalues = node;
+    else 
+        prev->next = node;
+
+    return node->upvalue;
+}
+
+void vmCloseUpValue(VM* vm, Value* ref){
+    UpValueNode *prev, *current;
+    prev = NULL;
+    current = vm->upvalues;
+    while(current != NULL && current->ref > ref){
+        prev = current;
+        current = current->next;
+    }
+    if(current != NULL && current->ref == ref) {
+        if(prev == NULL){
+            vm->upvalues = current->next;
+        } else {
+            prev->next = current->next;
+        }
+        closeUpValue(current->upvalue);
+        free(current);
+    }
+}
+
+static void vmCloseCallFrame(VM* vm){
+    Value* first = vm->frame->slots;
+    while(vm->upvalues != NULL && vm->upvalues->ref >= first){
+        UpValueNode* node = vm->upvalues;
+        vm->upvalues = node->next;
+        closeUpValue(node->upvalue);
+        free(node);
+    }
 }

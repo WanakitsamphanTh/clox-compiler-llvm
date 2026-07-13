@@ -10,17 +10,21 @@
 #define STACK_MAX (FRAME_MAX * (UINT8_MAX + 1))
 
 typedef struct _CallFrame CallFrame;
+typedef struct _ObjUpValue ObjUpValue;
+
+typedef struct _UpValueList {
+    Value* ref;
+    ObjUpValue* upvalue;
+    struct _UpValueList* next;
+} UpValueNode;
 
 typedef struct _VM {
-    //Chunk* chunk;
-    //uint8_t* ip;
     Value* stack_top;
     size_t frame_count;
     CallFrame* frame;
-    //Obj* objects;
-    //Table strings;
     Table globals;
     ObjHeap heap;
+    UpValueNode* upvalues;
     Value stack[STACK_MAX];
     CallFrame* call_frames;
 } VM;

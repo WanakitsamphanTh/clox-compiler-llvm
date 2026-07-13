@@ -61,7 +61,7 @@ bool compile(const char* source, Chunk* chunk, ObjHeap* heap){
         goto compilation_terminated;
     }
 
-    printf("finished parsing\n");
+    //printf("finished parsing\n");
     #ifdef DEBUG_PRINT_AST
     _debugAst(statements);
     #endif
@@ -71,11 +71,11 @@ bool compile(const char* source, Chunk* chunk, ObjHeap* heap){
     initCompiler();
     compiler.heap = heap;
     compiler.compiling_chunk = chunk;
-    printf("Initialized compiler\n");
+    //printf("Initialized compiler\n");
 
     // Scope resolver and name binding
     resolve(&compiler.resolver, &statements);
-    printf("Resolve complete\n");
+    //printf("Resolve complete\n");
     if(compiler.resolver.has_error){
         fprintf(stderr, "Resolver error: %s", compiler.resolver.error_msg);
         successful = false;
@@ -84,13 +84,13 @@ bool compile(const char* source, Chunk* chunk, ObjHeap* heap){
 
     // bytecode emission
     compileStatementList(&statements);
-    printf("Compilation completed");
+    //printf("Compilation completed");
     if(compile_error){
         fprintf(stderr, "Compilation error: %s\n", compile_error_msg);
         successful = false;
         goto compilation_terminated;
     }
-    printf("finished compiling\n");
+    //printf("finished compiling\n");
 
     writeChunk(chunk, OP_RETURN);
 
@@ -130,8 +130,11 @@ void compileStatement(Stmt* stmt){
         case BLOCK_STMT:{
             compileStatementList(&stmt->body._block->stmt_list); TERMINATE_IF_ERROR();
             int i;
-            for(i = 0; i < stmt->body._block->scope->symbol_count; i++)
-                emitByte(OP_POP);
+            for(i = 0; i < stmt->body._block->scope->symbol_count; i++){
+                symbol = stmt->body._block->scope->locals[i];
+                if(symbol->captured) emitByte(OP_CLOSE_UVAL);
+                else emitByte(OP_POP);
+            }
             break;
         }
 
@@ -166,6 +169,7 @@ void compileStatement(Stmt* stmt){
 
         case FN_DECL:{
             FnDeclStmt* decl = stmt->body._fn_decl;
+            FnInfo* info = decl->info;
             symbol = decl->symbol;
             uint32_t hash = hashString(symbol->name, symbol->length);
             ObjString* name = newObjString(compiler.heap, symbol->name, symbol->length, hash);
@@ -184,7 +188,11 @@ void compileStatement(Stmt* stmt){
 
             compiler.compiling_chunk = saved_chunk;
 
-            emitConstant(VALUE_OBJ(fn));
+            uint8_t fn_constant = makeConstant(VALUE_OBJ(fn));
+            emitBytes(3, OP_CLOSURE, fn_constant, (uint8_t) info->upvalue_count); // OP_CLOSURE fn upvalue_count type_1 index_1 ...
+            for(int i = 0; i < info->upvalue_count; i++)
+                emitBytes(2, (uint8_t) info->upvalues[i].type, (uint8_t) info->upvalues[i].index);
+
             switch(decl->symbol->type){
                 case SYM_GLOB:{
                     uint8_t global = makeIdentifierConstant(symbol->name, symbol->length);
@@ -320,7 +328,9 @@ void compileExpr(Expr* expr){
                 case SYM_LOC:
                     emitBytes(2, OP_LOAD_LOC, (uint8_t) symbol->slot);
                     break;
+
                 case SYM_UVAL:
+                    emitBytes(2, OP_LOAD_UVAL, (uint8_t) symbol->slot);
                     break;
             }
 
@@ -354,6 +364,7 @@ void compileExpr(Expr* expr){
                     emitBytes(2, OP_STORE_LOC, (uint8_t) symbol->slot);
                     break;
                 case SYM_UVAL:
+                    emitBytes(2, OP_STORE_UVAL, (uint8_t) symbol->slot);
                     break;
             }
             break;

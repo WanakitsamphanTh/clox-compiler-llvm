@@ -129,6 +129,7 @@ void fnDeclnit(FnDeclStmt* decl){
     decl->arity = 0;
     decl->symbol = NULL;
     decl->body = NULL;
+    decl->info = NULL;
 
     decl->args.capacity= 0;
     decl->args.names = NULL;

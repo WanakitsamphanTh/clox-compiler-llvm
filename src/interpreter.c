@@ -57,6 +57,7 @@ InterpretResult interpret(VM* vm, const char* source){
         freeChunk(&chunk);
         return INTERPRET_ERROR;
     };
+    //exit(-1);
 
     //vm.chunk = &chunk;
     //vm.ip = vm.chunk->code;

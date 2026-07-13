@@ -6,6 +6,7 @@ fun add(a,b){
     print "exit add";
     return a + b;
 }
+
 print "result = " + add(1,10);
 
 fun arrayOf(a){
@@ -30,3 +31,12 @@ print "input string: ";
 print scan();
 
 print "now: " + clock();
+
+fun display(){
+    print "displaying " + name;
+}
+
+print "name";
+var name = scan();
+
+display();

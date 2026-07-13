@@ -4,26 +4,26 @@ This is my project in implementing a compiler and LLVM in C for Lox (from Crafti
 ## Key differences
 - The compiler in Crafting Interpreter uses Pratt Parsing without building AST. My compiler traverses AST and emits bytecodes for LLVM. I implemented almost everything besides LLVM from scratch, so a large chunk of compiler code needs optimization.
 - Therefore, I have a distinct scope resolver from compiler. Also expressions and statements that include identifiers contain corresponding Symbol objects inside.
-- For that reason, I implemented Scope and Symbol objects from scratch. There's definitely problems to fix and maybe I need to optimize how those objects are freed. (but the pointer ownership model here is sound, I guess)
+- For that reason, I implemented Scope and Symbol objects from scratch. There's definitely problems to fix and maybe I need to refactor how those objects are freed. (but the pointer ownership model here is sound, I guess)
 - My CLox (as well as GoLox) has a quirky boolean evalutation. true is evaluated to true, everything else is evaluated to false. (hence non-boolean values are false)
 - ObjString is implemented as variable-sized struct.
 - Constant pool has no duplicate values since `addConstant` never adds identical values.
-- A little different design regarding function objects. My VM has ObjCallable, ObjNativeFn, and ObjFn. The first is the base class for the latters. I utilize dynamic dispatch to call a function, that is, either calling a native function directly or call the wrapper function for a compiled chunk. Another subtle difference is that my functions always put return value to the first slot.
+- A little different design regarding function objects. My VM has ObjCallable, ObjNativeFn, ObjFn, and ObjClosure. The first is the base class for the latters. I utilize dynamic dispatch to call a function, that is, either calling a native function directly or call the wrapper function for a compiled chunk. Another subtle difference is that my functions always put return value to the first slot.
 - ~~Every frame has error state (which is implemented as Obj* or more precisely ObjString*). It's currently used to signal that a native function has error. Ideally, I'd love to use that for script functions as well to implement error handling mechanism but I'm busy building basic stuff in the tutorial.~~ (Problably not a good idea)
 - VM is not a global object. VM does not own string pool nor object pool. Instead, it owns a pointer to ObjHeap which stores all objects allocated throughout compile time and runtime.
 - My CLox features Array.
     - the formal grammar for array is \
      $ array := \{ [expression [, expression]*]? \} $
     - array/string operation (to be implemented)
-        - [ ] get/set element \
+        - [ ] get/set \
             $ set := index = expression $ \
             $ get := index $ \
             $ index := [primary | call] ~ {``}[{"} expression{``}]{"}+  $ \
             where $ call := primary [(parameters)]?$
         - [ ] slice
         - [ ] binary operation $ in: x, array \rightarrow \{true, false\} $
-        - [ ] binary operation $ +: a, b \mapsto \{a_1,...a_n,b_1,...b_n\}  $
-        - [ ] unary operation $ \text{len}: arr \rightarrow number$
+        - [X] binary operation $ +: a, b \mapsto \{a_1,...a_n,b_1,...b_n\}  $
+        - [X] unary operation $ \text{len}: arr \rightarrow number$
         - [ ] element-wise comparition `==` and `!=`
 - Some different function names and OpCodes due to personal preference.
 

@@ -48,6 +48,12 @@ typedef enum {
     OP_LOAD_LOC,
     OP_STORE_LOC,
 
+    OP_UVAL,
+    OP_LOAD_UVAL,
+    OP_STORE_UVAL,
+    OP_CLOSE_UVAL,
+
+    OP_CLOSURE,
     OP_CALL,
 
     OP_PRINT

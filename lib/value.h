@@ -7,7 +7,8 @@ typedef enum {
     OBJ_INSTANCE,
     OBJ_STRING,
     OBJ_ARRAY,
-    OBJ_CALLABLE
+    OBJ_CALLABLE,
+    OBJ_UPVALUE,
 } ObjType;
 
 typedef struct _Obj {

@@ -8,6 +8,7 @@
 struct _Stmt;
 typedef struct _Stmt Stmt;
 typedef struct _Chunk Chunk;
+typedef struct _FnInfo FnInfo;
 
 typedef struct _StmtList {
     int count;
@@ -74,7 +75,7 @@ typedef struct _FnDeclStmt {
     } args;
 
     Stmt* body;
-
+    FnInfo* info;
 } FnDeclStmt;
 
 typedef struct _ReturnStmt {

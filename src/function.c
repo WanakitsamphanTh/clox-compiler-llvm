@@ -50,5 +50,42 @@ bool call(ObjCallable *callable, VM *vm){
             vmPush(vm, result);
             return success;
         }
+        case CLOSURE:{
+            ObjClosure* closure = callable;
+            vm->frame->ip = closure->prototype->chunk.code;
+            vm->frame->chunk = &closure->prototype->chunk;
+            return true;
+        }
     }
+}
+
+ObjCallable* newClosure(ObjHeap* heap, ObjFn* fn, size_t upvalue_count){
+    ObjClosure* closure = AllocateObj(heap, OBJ_CALLABLE, NULL, sizeof(ObjClosure) + sizeof(ObjUpValue*) * upvalue_count);
+    closure->invoke = fn->invoke;
+    closure->invoke.type = CLOSURE;
+    closure->invoke.obj.destructor = NULL;
+    closure->prototype = fn;
+    closure->upvalue_count = upvalue_count;
+    return closure;
+}
+
+ObjUpValue* newUpValue(ObjHeap* heap, Value* ref){
+    ObjUpValue *uval = AllocateObj(heap, OBJ_UPVALUE, NULL, sizeof(ObjUpValue));
+    uval->ref = ref;
+    return uval;
+}
+
+void closeUpValue(ObjUpValue* upvalue){
+    upvalue->value = *upvalue->ref;
+    upvalue->ref = NULL;
+}
+
+Value getUpValue(ObjUpValue* upvalue){
+    if(upvalue->ref != NULL) return *upvalue->ref;
+    else return upvalue->value;
+}
+
+void setUpValue(ObjUpValue* upvalue, Value value){
+    if(upvalue->ref != NULL) *upvalue->ref = value;
+    else upvalue->value = value;
 }
