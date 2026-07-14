@@ -23,12 +23,13 @@ typedef struct _Obj {
     ObjType type;
 
     // for GC
-    size_t ref_count;
+    bool marked;
 
     // next
     struct _Obj* next;
 } Obj;
 
+void obj_mark(Obj*);
 extern struct _Obj_Vtable obj_vtable;
 
 typedef struct {

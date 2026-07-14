@@ -4,13 +4,16 @@
 #include "value.h"
 #include "obj.h"
 #include "vm.h"
+#include "gc.h"
 
-void free_obj_fn(Obj* obj){
-    ObjFn* fn = obj;
-    freeChunk(&fn->chunk);
-}
+void free_obj_fn(Obj* obj);
+void mark_obj_fn(Obj* obj);
+void mark_obj_callable(Obj* obj);
+void mark_obj_closure(Obj* obj);
 
-struct _Obj_Vtable obj_fn_vtable = {.destructor = free_obj_fn, .mark = NULL};
+struct _Obj_Vtable obj_callable_vtable = {.destructor = NULL, .mark = mark_obj_callable};
+struct _Obj_Vtable obj_fn_vtable = {.destructor = free_obj_fn, .mark = mark_obj_fn};
+struct _Obj_Vtable obj_closure_vtable = {.destructor = NULL, .mark = mark_obj_closure};
 
 ObjCallable* newFunction(ObjHeap* heap, ObjString* name, int arity){
     ObjFn* fn = AllocateObj(heap, OBJ_CALLABLE, &obj_fn_vtable, sizeof(ObjFn));
@@ -89,4 +92,32 @@ Value getUpValue(ObjUpValue* upvalue){
 void setUpValue(ObjUpValue* upvalue, Value value){
     if(upvalue->ref != NULL) *upvalue->ref = value;
     else upvalue->value = value;
+}
+
+void free_obj_fn(Obj* obj){
+    ObjFn* fn = obj;
+    freeChunk(&fn->chunk);
+}
+
+void mark_obj_callable(Obj* obj){
+    obj_mark(obj);
+    ObjCallable* callable = obj;
+    gcMarkObj(callable->name);
+}
+
+void mark_obj_fn(Obj* obj){
+    mark_obj_callable(obj);
+    ObjFn *fn = obj;
+    gcMarkChunk(&fn->chunk);
+}
+
+void mark_obj_closure(Obj* obj){
+    mark_obj_callable(obj);
+    ObjClosure* closure = obj;
+    // mark the prototype
+    gcMarkObj(closure->prototype);
+    for(int i = 0; i < closure->upvalue_count; i++){
+        // mark upvalues
+        gcMarkObj(closure->upvalues[i]);
+    }
 }

@@ -1,11 +1,12 @@
 #include "obj.h"
 #include "value.h"
 #include "table.h"
+#include "gc.h"
 
 static void obj_array_destructor(Obj*);
 static void obj_array_mark(Obj*);
 
-struct _Obj_Vtable obj_vtable = {.destructor = NULL, .mark = NULL};
+struct _Obj_Vtable obj_vtable = {.destructor = NULL, .mark = obj_mark};
 struct _Obj_Vtable obj_array_vtable = {.destructor = &obj_array_destructor, .mark = obj_array_mark};
 
 Obj* AllocateObj(ObjHeap* heap, ObjType type, struct _Obj_Vtable* vtable, size_t size){
@@ -125,5 +126,17 @@ void freeObjHeap(ObjHeap* heap){
     }
 }
 
-void obj_array_destructor(Obj* obj){}
-void obj_array_mark(Obj* obj){}
+void obj_mark(Obj* obj){
+    obj->marked = true;
+}
+
+void obj_array_destructor(Obj* obj){
+    return;
+}
+
+void obj_array_mark(Obj* obj){
+    obj_mark(obj);
+    ObjArray* array = obj;
+    for(int i = 0; i < array->len; i++)
+        gcMarkValue(&array->elements[i]);
+}
