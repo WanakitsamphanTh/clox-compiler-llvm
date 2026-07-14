@@ -1,5 +1,6 @@
 #include "vm.h"
 #include "value.h"
+#include "obj.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>

@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include "value.h"
+#include "obj.h"
 #include "common.h"
 
 typedef enum {

@@ -5,6 +5,7 @@
 #include "compiler/resolve_loop.h"
 #include "compiler/resolve_scope.h"
 #include "function.h"
+#include "obj.h"
 #include "vm.h"
 #include <stdio.h>
 #include <stdlib.h>

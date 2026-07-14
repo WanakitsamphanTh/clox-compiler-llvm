@@ -7,6 +7,7 @@
 #include "compiler/resolve_loop.h"
 #include "compiler/resolve_scope.h"
 #include "value.h"
+#include "obj.h"
 
 extern Chunk* compilingChunk;
 extern bool compile_error;
