@@ -358,33 +358,10 @@ bool resolveExpr(ScopeResolver* resolver, Expr* expr){
             success = resolveExpr(resolver, expr->body._bin->right); TERMINATE_RESOLVER_IF_ERROR();
             success = resolveExpr(resolver, expr->body._bin->left); TERMINATE_RESOLVER_IF_ERROR();
             break;
-        case ASSIGNMENT_EXPR:{
-            success = resolveExpr(resolver, expr->body._assign->val); TERMINATE_RESOLVER_IF_ERROR();
-            
-            SymbolLookupResult result = lookUpSymbol(resolver, expr->body._assign->var.start, expr->body._assign->var.length);
-            Symbol* symbol = result.symbol;
-
-            /*if(symbol == NULL){
-                RESOLVER_ERROR("Cannot resolve symbol at line %d", expr->body._assign->var.line);
-                TERMINATE_RESOLVER_IF_ERROR();
-            }            
-            expr->body._assign->symbol = symbol;*/
-            if(symbol == NULL){  
-                RESOLVER_ERROR("Cannot resolve symbol at line %d\n", expr->body._assign->var.line + 1);
-                TERMINATE_RESOLVER_IF_ERROR();
-            }
-            
-            if(symbol->type != SYM_GLOB && result.crossed_fn_boundary){
-                symbol = resolveUpValue(resolver, symbol, resolver->current_fn);
-                if(symbol == NULL){
-                    RESOLVER_ERROR("Cannot resolve upvalue symbol at line %d\n", expr->body._assign->var.line + 1);
-                    TERMINATE_RESOLVER_IF_ERROR();
-                }
-            }
-
-            expr->body._assign->symbol = symbol;
+        case ASSIGNMENT_EXPR:
+            success = resolveExpr(resolver, expr->body._assign->rval); TERMINATE_RESOLVER_IF_ERROR();
+            success = resolveExpr(resolver, expr->body._assign->lval); TERMINATE_RESOLVER_IF_ERROR();
             break;
-        }
         case VAR_EXPR:{
             SymbolLookupResult result = lookUpSymbol(resolver, expr->body._var->name.start, expr->body._var->name.length);
             Symbol* symbol = result.symbol;

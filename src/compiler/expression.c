@@ -71,9 +71,8 @@ Expr* newExpr(ExprType type){
             break;
         case ASSIGNMENT_EXPR:
             expr->body._assign = malloc(sizeof(AssignmentExpr));
-            expr->body._assign->var.type = TOKEN_NONE;
-            expr->body._assign->val = NULL;
-            expr->body._assign->symbol = NULL;
+            expr->body._assign->lval = NULL;
+            expr->body._assign->rval = NULL;
             break;
         case ARR_EXPR:
             expr->body._arr = malloc(sizeof(ArrExpr));
@@ -119,8 +118,10 @@ void freeExpr(Expr *expr){
             free(expr->body._var);
             break;    
         case ASSIGNMENT_EXPR:
-            freeExpr(expr->body._assign->val);
+            freeExpr(expr->body._assign->lval);
+            freeExpr(expr->body._assign->rval);
             free(expr->body._assign);
+            printf("Freed assignment expr[%p]...\n", expr);
             break;   
         case ARR_EXPR:{
             int i = 0;
@@ -173,7 +174,7 @@ bool isConstantExpr(const Expr* expr){
             return true;
         }
         case ASSIGNMENT_EXPR:{ /* determined by rvalue*/
-            return isConstantExpr(expr->body._assign->val);
+            return isConstantExpr(expr->body._assign->rval);
         }
 
         /* literal are constant */

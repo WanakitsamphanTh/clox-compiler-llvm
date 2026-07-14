@@ -18,6 +18,8 @@ char compile_error_msg[256];
 
 Compiler compiler;
 
+static void compileAssignmentExpr(Expr*);
+
 void initCompiler(){
     initLoopStack(&compiler.loops);
     initResolver(&compiler.resolver);
@@ -353,24 +355,7 @@ void compileExpr(Expr* expr){
             compileOperator(expr->body._unary->op.type, expr->type); TERMINATE_IF_ERROR();
             break;
         case ASSIGNMENT_EXPR: { 
-            compileExpr(expr->body._assign->val); TERMINATE_IF_ERROR();
-            symbol = expr->body._assign->symbol;
-            const char* name = symbol->name;
-            int len = symbol->length;
-
-            switch(symbol->type){
-                case SYM_GLOB:{
-                    uint8_t ref = makeIdentifierConstant(name, len);
-                    emitBytes(2, OP_STORE_GLOB, ref);
-                    break;
-                }
-                case SYM_LOC:
-                    emitBytes(2, OP_STORE_LOC, (uint8_t) symbol->slot);
-                    break;
-                case SYM_UVAL:
-                    emitBytes(2, OP_STORE_UVAL, (uint8_t) symbol->slot);
-                    break;
-            }
+            compileAssignmentExpr(expr); TERMINATE_IF_ERROR();
             break;
         }
         case ARR_EXPR:{
@@ -402,6 +387,42 @@ void compileExpr(Expr* expr){
         return;
 }
 
+void compileAssignmentExpr(Expr* expr){
+    AssignmentExpr* assign = expr->body._assign;
+    compileExpr(expr->body._assign->rval); TERMINATE_IF_ERROR();
+    switch(assign->lval->type){
+        case VAR_EXPR:{
+            VarExpr* var = assign->lval->body._var;
+            Symbol* symbol = var->symbol;
+            const char* name = symbol->name;
+            int len = symbol->length;
+            switch(symbol->type){
+                case SYM_GLOB:{
+                    uint8_t ref = makeIdentifierConstant(name, len);
+                    emitBytes(2, OP_STORE_GLOB, ref);
+                    break;
+                }
+                case SYM_LOC:
+                    emitBytes(2, OP_STORE_LOC, (uint8_t) symbol->slot);
+                    break;
+                case SYM_UVAL:
+                    emitBytes(2, OP_STORE_UVAL, (uint8_t) symbol->slot);
+                    break;
+            }
+            
+            break;
+        }
+        case INDEX_EXPR:{
+            IndexExpr* index_expr = assign->lval->body._index;
+            compileExpr(index_expr->var); TERMINATE_IF_ERROR();
+            compileExpr(index_expr->index); TERMINATE_IF_ERROR();
+            emitByte(OP_SET_IND);
+            break;
+        }
+    }
+    terminate_compilation:
+        return;
+}
 
 void compileOperator(TokenType op, ExprType expr_type){
     if(compile_error) return;
@@ -600,6 +621,9 @@ static bool _debugStmt(Stmt* stmt, int indent){
             }
             free(fn_name);
         }
+        break;
+        default:
+            _putIndent(indent); printf("Unknown statement");
     }
     return true;
 }
@@ -657,13 +681,11 @@ static bool _debugExpr(Expr* expr, int indent){
             break;
         }
         case ASSIGNMENT_EXPR: 
-            char *var_name = getLexeme(expr->body._assign->var);
             _putIndent(indent++); printf("Assignment\n");
-            _putIndent(indent); printf("Asignee: \n");
-            _putIndent(indent+1); printf("%s\n", var_name);
-            _putIndent(indent); printf("Value: \n");
-            _debugExpr(expr->body._assign->val, indent+1);
-            free(var_name);
+            _putIndent(indent); printf("Left value: \n");
+            _debugExpr(expr->body._assign->lval, indent+1);
+            _putIndent(indent); printf("Right Value: \n");
+            _debugExpr(expr->body._assign->rval, indent+1);
             break;
         case ARR_EXPR:{
             _putIndent(indent++); printf("Array of [%d] elements\n", expr->body._arr->count);
@@ -683,6 +705,11 @@ static bool _debugExpr(Expr* expr, int indent){
                 _putIndent(indent); printf("arg[%d]: \n", i + 1);
                 _debugExpr(expr->body._call->argv.list[i], indent + 2);
             }
+            break;
+        case INDEX_EXPR:
+            break;
+        default:
+            _putIndent(indent); printf("Unknown expression");
         }
 
     return true;

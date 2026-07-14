@@ -362,14 +362,13 @@ Expr* parseAssignment(){
 
     if(match(TOKEN_EQUAL)){
         left = expr;
-        if(left->type == VAR_EXPR){
+        if(left->type == VAR_EXPR || left->type == INDEX_EXPR){
             right = parseAssignment();
             END_PARSING_IF_ERROR();
             expr = newExpr(ASSIGNMENT_EXPR);
-            expr->body._assign->val = right;
-            expr->body._assign->var = left->body._var->name;
+            expr->body._assign->rval = right;
+            expr->body._assign->lval = left;
             right = NULL;
-            freeExpr(left);
         } else {
             PARSER_ERROR("Invalid assignment target");
         }

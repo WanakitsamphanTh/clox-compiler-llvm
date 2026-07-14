@@ -46,9 +46,8 @@ typedef struct {
 } GroupExpr;
 
 typedef struct {
-    Token var;
-    Symbol* symbol;
-    Expr* val;
+    Expr* lval;
+    Expr* rval;
 } AssignmentExpr;
 
 typedef struct {

@@ -7,6 +7,17 @@ for(var i = 0; i < len(x); i = i + 1){
 var y = 10;
 var z = {y+1,y+2,y+3};
 print z;
+
+print "==========before==========";
+for(var i = 0; i < len(z); i = i + 1){
+    print "index " + i + " = " + z[i];
+}
+
+for(var i = 0; i < len(z); i = i + 1){
+    z[i] = z[i] * 100;
+}
+
+print "==========after==========";
 for(var i = 0; i < len(z); i = i + 1){
     print "index " + i + " = " + z[i];
 }
