@@ -1,0 +1,14 @@
+var i = 0;
+var x = ".";
+for(i = 0; i < 10; i = i + 1){
+    print i;
+    x = x + x;
+}
+
+print x;
+
+x = range(0,200,1);
+
+for(i = 0; i < 200; i = i + 1){
+    print "x[" + i + "] = " + x[i];
+}

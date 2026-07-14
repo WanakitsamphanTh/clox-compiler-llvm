@@ -25,6 +25,9 @@ This is my project in implementing a compiler and LLVM in C for Lox (from Crafti
         - [X] binary operation $ +: a, b \mapsto \{a_1,...a_n,b_1,...b_n\}  $
         - [X] unary operation $ \text{len}: arr \rightarrow number$
         - [ ] element-wise comparition `==` and `!=`
+        - [ ] for each loop
+            `for(each x: arr) stmt`
+            as oppose to `for(init_stmt; cond_expr; latch_expr) stmt`
 
 ## Note
 - Runtime stack and constant pool is too small

@@ -5,6 +5,7 @@
 #include "common.h"
 #include "value.h"
 #include "table.h"
+#include "gc.h"
 
 #define FRAME_MAX 64
 #define STACK_MAX (FRAME_MAX * (UINT8_MAX + 1))
@@ -26,6 +27,7 @@ typedef struct _VM {
     ObjHeap heap;
     UpValueNode* upvalues;
     Value stack[STACK_MAX];
+    GC gc;
     CallFrame* call_frames;
     bool has_error;
     char err_msg[256];

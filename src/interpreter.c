@@ -53,11 +53,12 @@ InterpretResult interpretFile(VM* vm, const char* file_name) {
 
 InterpretResult interpret(VM* vm, const char* source){
     Chunk chunk = newChunk();
+    vm->gc.enabled = false;
     if(!compile(source, &chunk, &vm->heap)) {
         freeChunk(&chunk);
         return INTERPRET_ERROR;
     };
-    //exit(-1);
+    vm->gc.enabled = true;
 
     //vm.chunk = &chunk;
     //vm.ip = vm.chunk->code;

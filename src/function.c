@@ -7,13 +7,13 @@
 #include "gc.h"
 
 void free_obj_fn(Obj* obj);
-void mark_obj_fn(Obj* obj);
-void mark_obj_callable(Obj* obj);
-void mark_obj_closure(Obj* obj);
+void blacken_obj_fn(GC*, Obj* obj);
+void blacken_obj_callable(GC*, Obj* obj);
+void blacken_obj_closure(GC*, Obj* obj);
 
-struct _Obj_Vtable obj_callable_vtable = {.destructor = NULL, .mark = mark_obj_callable};
-struct _Obj_Vtable obj_fn_vtable = {.destructor = free_obj_fn, .mark = mark_obj_fn};
-struct _Obj_Vtable obj_closure_vtable = {.destructor = NULL, .mark = mark_obj_closure};
+struct _Obj_Vtable obj_callable_vtable = {.destructor = NULL, .blacken = blacken_obj_callable};
+struct _Obj_Vtable obj_fn_vtable = {.destructor = free_obj_fn, .blacken = blacken_obj_fn};
+struct _Obj_Vtable obj_closure_vtable = {.destructor = NULL, .blacken = blacken_obj_closure};
 
 ObjCallable* newFunction(ObjHeap* heap, ObjString* name, int arity){
     ObjFn* fn = AllocateObj(heap, OBJ_CALLABLE, &obj_fn_vtable, sizeof(ObjFn));
@@ -99,25 +99,24 @@ void free_obj_fn(Obj* obj){
     freeChunk(&fn->chunk);
 }
 
-void mark_obj_callable(Obj* obj){
-    obj_mark(obj);
+void blacken_obj_callable(GC* gc, Obj* obj){
     ObjCallable* callable = obj;
-    gcMarkObj(callable->name);
+    gcMarkObj(gc, callable->name);
 }
 
-void mark_obj_fn(Obj* obj){
-    mark_obj_callable(obj);
+void blacken_obj_fn(GC* gc, Obj* obj){
+    blacken_obj_callable(gc, obj);
     ObjFn *fn = obj;
-    gcMarkChunk(&fn->chunk);
+    gcMarkChunk(gc, &fn->chunk);
 }
 
-void mark_obj_closure(Obj* obj){
-    mark_obj_callable(obj);
+void blacken_obj_closure(GC* gc, Obj* obj){
+    blacken_obj_callable(gc, obj);
     ObjClosure* closure = obj;
     // mark the prototype
-    gcMarkObj(closure->prototype);
+    gcMarkObj(gc, closure->prototype);
     for(int i = 0; i < closure->upvalue_count; i++){
         // mark upvalues
-        gcMarkObj(closure->upvalues[i]);
+        gcMarkObj(gc, closure->upvalues[i]);
     }
 }

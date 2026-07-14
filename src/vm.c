@@ -23,7 +23,9 @@ static void vmCloseCallFrame(VM*);
 void initVM(VM* vm){
     resetStack(vm);
     initObjHeap(&vm->heap);
+    vm->heap.owner = vm;
     initTable(&vm->globals);
+    initGC(&vm->gc);
     defineNativeFunctions(vm, &defineNative);
     vm->call_frames = malloc(sizeof(CallFrame) * FRAME_MAX);
     if(vm->call_frames == NULL){
@@ -39,6 +41,7 @@ void initVM(VM* vm){
 
 void freeVM(VM* vm){
     freeObjHeap(&vm->heap);
+    freeGC(&vm->gc);
     free(vm->call_frames);
     if(vm->upvalues != NULL){
         UpValueNode* node;
@@ -59,31 +62,37 @@ InterpretResult vmInterpret(VM* vm, Chunk* chunk) {
 }
 
 #define ARITH_BINARY_OP(op) do { \
-    Value b = vmPop(vm); \
-    Value a = vmPop(vm); \
+    Value b = vmPeek(vm, 0); \
+    Value a = vmPeek(vm, 1); \
     if(!IS_NUM(a) || !IS_NUM(b)){ \
         runtimeError(vm, "Operands must be both number & number"); \
         return INTERPRET_RUNTIME_ERROR; \
     } \
     Value c = VALUE_NUM(AS_NUM(a) op AS_NUM(b)); \
+    vmPop(vm); \
+    vmPop(vm); \
     vmPush(vm, c); \
     } while(0)
 
 #define COMP_BINARY_OP(op) do { \
-    Value b = vmPop(vm); \
-    Value a = vmPop(vm); \
+    Value b = vmPeek(vm, 0); \
+    Value a = vmPeek(vm, 1); \
     if(!IS_NUM(a) || !IS_NUM(b)){ \
         runtimeError(vm, "Operands must be both number & number"); \
         return INTERPRET_RUNTIME_ERROR; \
     } \
     Value c = VALUE_BOOL(AS_NUM(a) op AS_NUM(b)); \
+    vmPop(vm); \
+    vmPop(vm); \
     vmPush(vm, c); \
     } while(0)
 
 #define BOOL_BINARY_OP(op) do { \
-    Value b = vmPop(vm); \
-    Value a = vmPop(vm); \
+    Value b = vmPeek(vm, 0); \
+    Value a = vmPeek(vm, 1); \
     Value c = VALUE_BOOL(IS_TRUTHY(a) op IS_TRUTHY(b)); \
+    vmPop(vm); \
+    vmPop(vm); \
     vmPush(vm, c); \
     } while(0)
 
@@ -117,9 +126,14 @@ InterpretResult runVM(VM* vm){
 
                 // poping value for array
                 for(i = 0; i < size; i++)
-                    v_arr[i] = vmPop(vm);
+                    v_arr[i] = vmPeek(vm, i);
                 
-                vmPush(vm, VALUE_OBJ(makeObjArray(&vm->heap, size, v_arr)));
+                Value array = VALUE_OBJ(makeObjArray(&vm->heap, size, v_arr));
+
+                for(i = 0; i < size; i++)
+                    vmPop(vm);
+
+                vmPush(vm, array);
 
                 free(v_arr);
                 break;
@@ -137,8 +151,8 @@ InterpretResult runVM(VM* vm){
                 break;
             case OP_ADD:{
                 if(IS_STR(vmPeek(vm, 1))){
-                    Value b = vmPop(vm);
-                    Value a = vmPop(vm);
+                    Value b = vmPeek(vm, 0);
+                    Value a = vmPeek(vm, 1);
                     ObjString *first = AS_STR(a);
                     ObjString *second;
 
@@ -150,11 +164,15 @@ InterpretResult runVM(VM* vm){
                     Value c;
                     c.type = OBJ_VALUE;
                     c.val.obj = concatObjString(&vm->heap, first, second);
+                    vmPop(vm);
+                    vmPop(vm);
                     vmPush(vm, c);
                 } else if(IS_ARRAY(vmPeek(vm, 1)) && IS_ARRAY(vmPeek(vm, 0))){
-                    Value b = vmPop(vm);
-                    Value a = vmPop(vm);
+                    Value b = vmPeek(vm, 0);
+                    Value a = vmPeek(vm, 1);
                     ObjArray *array = concatObjArray(&vm->heap, AS_OBJ(a), AS_OBJ(b));
+                    vmPop(vm);
+                    vmPop(vm);
                     vmPush(vm, VALUE_OBJ(array));
                 } else
                     ARITH_BINARY_OP(+);
@@ -167,13 +185,15 @@ InterpretResult runVM(VM* vm){
             case OP_DIV:
                 ARITH_BINARY_OP(/); break;
             case OP_MOD:{ 
-                    Value b = vmPop(vm); 
-                    Value a = vmPop(vm); 
+                    Value b = vmPeek(vm, 0);
+                    Value a = vmPeek(vm, 1);
                     if(!IS_NUM(a) || !IS_NUM(b)){ 
                         runtimeError(vm, "Operands must be both number & number"); 
                         return INTERPRET_RUNTIME_ERROR; 
                     }
                     Value c = VALUE_NUM(((long long) AS_NUM(a)) % ((long long) AS_NUM(b))); 
+                    vmPop(vm);
+                    vmPop(vm);
                     vmPush(vm, c); 
                 }
                 break;
@@ -194,8 +214,8 @@ InterpretResult runVM(VM* vm){
             case OP_GREATER_EQ:
                 COMP_BINARY_OP(>=); break;
             case OP_EQ:{
-                Value b = vmPop(vm);
-                Value a = vmPop(vm);
+                Value b = vmPeek(vm, 0);
+                Value a = vmPeek(vm, 1);
                 Value c; 
                 if(a.type == NIL_VALUE && b.type == NIL_VALUE)
                     c = VALUE_BOOL(true);
@@ -210,6 +230,8 @@ InterpretResult runVM(VM* vm){
                 } else {
                     c= VALUE_BOOL(false); 
                 }
+                vmPop(vm);
+                vmPop(vm);
                 vmPush(vm, c); 
                 break;
             }
@@ -378,8 +400,8 @@ InterpretResult runVM(VM* vm){
                 break;
             }
             case OP_GET_IND:{
-                Value index = vmPop(vm);
-                Value array = vmPop(vm);
+                Value index = vmPeek(vm, 0);
+                Value array = vmPeek(vm, 1);
                 if(!isObjType(array, OBJ_ARRAY)){
                     runtimeError(vm, "Cannot index-access a non-array type");
                     return INTERPRET_RUNTIME_ERROR;
@@ -390,12 +412,14 @@ InterpretResult runVM(VM* vm){
                     runtimeError(vm, "Index out of range");
                     return INTERPRET_RUNTIME_ERROR;
                 }
+                vmPop(vm);
+                vmPop(vm);
                 vmPush(vm, arr->elements[ind]);
                 break;
             }
             case OP_SET_IND:{
-                Value index = vmPop(vm);
-                Value array = vmPop(vm);
+                Value index = vmPeek(vm, 0);
+                Value array = vmPeek(vm, 1);
                 if(!isObjType(array, OBJ_ARRAY)){
                     runtimeError(vm, "Cannot index-access a non-array type");
                     return INTERPRET_RUNTIME_ERROR;
@@ -406,6 +430,8 @@ InterpretResult runVM(VM* vm){
                     runtimeError(vm, "Index out of range");
                     return INTERPRET_RUNTIME_ERROR;
                 }
+                vmPop(vm);
+                vmPop(vm);
                 arr->elements[ind] = vmPeek(vm, 0);
                 break;
             }

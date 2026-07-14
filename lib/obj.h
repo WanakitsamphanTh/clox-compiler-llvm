@@ -5,6 +5,8 @@
 
 typedef struct _Value Value;
 typedef struct _Table Table;
+typedef struct _GC GC;
+typedef struct _VM VM;
 
 typedef enum _ObjType {
     OBJ_INSTANCE,
@@ -18,29 +20,34 @@ typedef struct _Obj {
     // meta info
     struct _Obj_Vtable {
         void (*destructor)(Obj*);
-        void (*mark)(Obj*);
+        void (*blacken)(GC*, Obj*);
     }* vtable;
     ObjType type;
 
     // for GC
     bool marked;
+    size_t size;
 
     // next
     struct _Obj* next;
 } Obj;
 
-void obj_mark(Obj*);
+void obj_blacken(GC* gc, Obj*);
 extern struct _Obj_Vtable obj_vtable;
 
 typedef struct {
+    size_t bytes_allocated;
+    size_t next_gc;
     Obj* objects;
     Table* strings;
+    VM* owner;
 } ObjHeap;
 
 void initObjHeap(ObjHeap*);
-void transferObjHeap(ObjHeap*,ObjHeap*);
+//void transferObjHeap(ObjHeap*,ObjHeap*);
 void freeObjHeap(ObjHeap*);
 void freeObj(Obj*);
+void heapCheck(ObjHeap*);
 bool isObjType(Value, ObjType);
 
 Obj* AllocateObj(ObjHeap*, ObjType type, struct _Obj_Vtable*, size_t size);
