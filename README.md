@@ -10,7 +10,8 @@ This is my project in implementing a compiler and LLVM in C for Lox (from Crafti
 - Constant pool has no duplicate values since `addConstant` never adds identical values.
 - A little different design regarding function objects. My VM has ObjCallable, ObjNativeFn, ObjFn, and ObjClosure. The first is the base class for the others. I utilize dynamic dispatch to call a function, that is, either calling a native function directly or call the wrapper function for a compiled chunk. Another subtle difference is that my native functions occupy a call frame and always put return value to the first slot.
 - While in Crafting Interpreters, non-closure functions are implemented as closures without upvalues, my VM runtime differentiate between ObjFn and ObjClosure depending on the presence of the instruction OP_CLOSURE.
-- VM is not a global object. VM does not own string pool nor object pool. Instead, it owns a pointer to ObjHeap which stores all objects allocated throughout compile time and runtime.
+- VM is not a global object. VM does not own string pool nor object pool. Instead, it owns a pointer to ObjHeap which stores all objects allocated throughout compile time and runtime. Functions like `realloc()` also have no access to VM. Thanks to my current design, compile-time objects and runtime objects are separate (except constant strings transfered to the VM), GC can be triggered using only VM interal object byte counts while compile-time data structures are separately released.
+- Each object type has its own vtable instead of using switch for certain functions like mark().
 - My CLox features Array.
     - the formal grammar for array is \
      $ array := \{ [expression [, expression]*]? \} $
