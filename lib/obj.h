@@ -4,6 +4,7 @@
 #include "value.h"
 
 typedef struct _Value Value;
+typedef struct _Table Table;
 
 typedef enum _ObjType {
     OBJ_INSTANCE,
@@ -15,7 +16,10 @@ typedef enum _ObjType {
 
 typedef struct _Obj {
     // meta info
-    void (*destructor)(void*);
+    struct _Obj_Vtable {
+        void (*destructor)(Obj*);
+        void (*mark)(Obj*);
+    }* vtable;
     ObjType type;
 
     // for GC
@@ -25,7 +29,7 @@ typedef struct _Obj {
     struct _Obj* next;
 } Obj;
 
-typedef struct _Table Table;
+extern struct _Obj_Vtable obj_vtable;
 
 typedef struct {
     Obj* objects;
@@ -38,7 +42,7 @@ void freeObjHeap(ObjHeap*);
 void freeObj(Obj*);
 bool isObjType(Value, ObjType);
 
-Obj* AllocateObj(ObjHeap*, ObjType type, void (*destructor)(void*), size_t size);
+Obj* AllocateObj(ObjHeap*, ObjType type, struct _Obj_Vtable*, size_t size);
 
 typedef struct _ObjString {    
     Obj obj;

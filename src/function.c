@@ -2,24 +2,26 @@
 #include <string.h>
 #include <stdio.h>
 #include "value.h"
+#include "obj.h"
 #include "vm.h"
 
-void free_obj_fn(void* obj){
+void free_obj_fn(Obj* obj){
     ObjFn* fn = obj;
     freeChunk(&fn->chunk);
 }
 
+struct _Obj_Vtable obj_fn_vtable = {.destructor = free_obj_fn, .mark = NULL};
+
 ObjCallable* newFunction(ObjHeap* heap, ObjString* name, int arity){
-    ObjFn* fn = AllocateObj(heap, OBJ_CALLABLE, NULL, sizeof(ObjFn));
+    ObjFn* fn = AllocateObj(heap, OBJ_CALLABLE, &obj_fn_vtable, sizeof(ObjFn));
     fn->invoke.name = name;
     fn->invoke.arity = arity;
     fn->invoke.type = FN;
     fn->chunk = newChunk();
-    fn->invoke.obj.destructor = &free_obj_fn;
     return fn;
 }
 ObjCallable* newNativeFunction(ObjHeap* heap, ObjString* name, int arity, NativeFn callee){
-    ObjNativeFn* fn = AllocateObj(heap, OBJ_CALLABLE, NULL, sizeof(ObjNativeFn));
+    ObjNativeFn* fn = AllocateObj(heap, OBJ_CALLABLE, &obj_vtable, sizeof(ObjNativeFn));
     fn->fn = callee;
     fn->invoke.type = NAT_FN;
     fn->invoke.arity = arity;
@@ -59,17 +61,17 @@ bool call(ObjCallable *callable, VM *vm){
 }
 
 ObjCallable* newClosure(ObjHeap* heap, ObjFn* fn, size_t upvalue_count){
-    ObjClosure* closure = AllocateObj(heap, OBJ_CALLABLE, NULL, sizeof(ObjClosure) + sizeof(ObjUpValue*) * upvalue_count);
-    closure->invoke = fn->invoke;
+    ObjClosure* closure = AllocateObj(heap, OBJ_CALLABLE, &obj_vtable, sizeof(ObjClosure) + sizeof(ObjUpValue*) * upvalue_count);
+    closure->invoke.arity = fn->invoke.arity;
+    closure->invoke.name = fn->invoke.name;
     closure->invoke.type = CLOSURE;
-    closure->invoke.obj.destructor = NULL;
     closure->prototype = fn;
     closure->upvalue_count = upvalue_count;
     return closure;
 }
 
 ObjUpValue* newUpValue(ObjHeap* heap, Value* ref){
-    ObjUpValue *uval = AllocateObj(heap, OBJ_UPVALUE, NULL, sizeof(ObjUpValue));
+    ObjUpValue *uval = AllocateObj(heap, OBJ_UPVALUE, &obj_vtable, sizeof(ObjUpValue));
     uval->ref = ref;
     return uval;
 }

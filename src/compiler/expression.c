@@ -121,7 +121,6 @@ void freeExpr(Expr *expr){
             freeExpr(expr->body._assign->lval);
             freeExpr(expr->body._assign->rval);
             free(expr->body._assign);
-            printf("Freed assignment expr[%p]...\n", expr);
             break;   
         case ARR_EXPR:{
             int i = 0;
