@@ -84,6 +84,11 @@ Expr* newExpr(ExprType type){
             expr->body._call = malloc(sizeof(CallExpr));
             callExprInit(expr->body._call);
             break;
+        case INDEX_EXPR:
+            expr->body._index = malloc(sizeof(IndexExpr));
+            expr->body._index->index = NULL;
+            expr->body._index->var = NULL;
+            break;
         default:
             free(expr);
             return NULL;
@@ -132,7 +137,12 @@ void freeExpr(Expr *expr){
             free(expr->body._call->argv.list);
             freeExpr(expr->body._call->callee);
             free(expr->body._call);
+            break;
         }
+        case INDEX_EXPR:
+            freeExpr(expr->body._index->index);
+            freeExpr(expr->body._index->var);
+            break;
         break;
     }
 

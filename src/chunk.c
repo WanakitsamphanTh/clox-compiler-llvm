@@ -132,6 +132,10 @@ int disassembleInstruction(const Chunk* chunk, int offset){
 
         case OP_CALL:
             return callInstruction("OP_CALL", chunk, offset);
+        case OP_GET_IND:
+            return simpleInstruction("OP_GET_IND", offset);
+        case OP_SET_IND:
+            return simpleInstruction("OP_SET_IND", offset);
     
         default:
             fprintf(stderr, "unknown opcode %d\n", op);

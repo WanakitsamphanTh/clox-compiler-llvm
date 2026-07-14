@@ -1,24 +1,14 @@
 var x = {0,true,"abc",{1,2}};
 print x;
+for(var i = 0; i < len(x); i = i + 1){
+    print "index " + i + " = " + x[i];
+}
 
 var y = 10;
-
 var z = {y+1,y+2,y+3};
 print z;
+for(var i = 0; i < len(z); i = i + 1){
+    print "index " + i + " = " + z[i];
+}
 
-var a = {y};
-print a;
-
-
-var c = {};
-print c;
-
-var d = {y,c,z};
-print d;
-
-print {10,20,30};
-
-print {10,20,30,40};
-print {y,a,c};
-
-print {10,20,30} + {40,50,60};
+print z[10];

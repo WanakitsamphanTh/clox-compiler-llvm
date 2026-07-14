@@ -550,24 +550,37 @@ Expr* parseUnary() {
 }
 
 Expr* parseCallExpr(){
+    /* IndexExpr and CallExpr are in the same level*/
     Expr* expr = parsePrimary(); END_PARSING_IF_ERROR();
-    Expr* arg = NULL;
-    Expr* callee = NULL;
-    while(match(TOKEN_LEFT_PAREN)){
+    Expr* arg = NULL; // for parameter / index
+    Expr* callee = NULL; // for function / array
+    while(match(TOKEN_LEFT_PAREN, TOKEN_LEFT_BRACKET)){
+        Token token = previous();
         callee = expr;
-        expr = newExpr(CALL_EXPR);
-        expr->body._call->callee = callee;
-        callee = NULL;
-        if(!check(TOKEN_RIGHT_PAREN)){
-            int i = 0;
-            do{
-                arg = parseExpr(); END_PARSING_IF_ERROR();
-                callExprAddParam(expr->body._call, arg);
-                arg = NULL;
-            } while(match(TOKEN_COMMA));
+        if(token.type == TOKEN_LEFT_PAREN){ // Call expression
+            expr = newExpr(CALL_EXPR);
+            expr->body._call->callee = callee;
+            callee = NULL;
+            if(!check(TOKEN_RIGHT_PAREN)){
+                int i = 0;
+                do{
+                    arg = parseExpr(); END_PARSING_IF_ERROR();
+                    callExprAddParam(expr->body._call, arg);
+                    arg = NULL;
+                } while(match(TOKEN_COMMA));
+            }
+            consume(TOKEN_RIGHT_PAREN, "Expect ')' after parameters");
+            END_PARSING_IF_ERROR();
+        } else { // index access expression
+            expr = newExpr(INDEX_EXPR);
+            expr->body._index->var = callee;
+            callee = NULL;
+            arg = parseExpr(); END_PARSING_IF_ERROR();
+            expr->body._index->index = arg;
+            arg = NULL;
+            consume(TOKEN_RIGHT_BRACKET, "Expect ']' after index");
+            END_PARSING_IF_ERROR();
         }
-        consume(TOKEN_RIGHT_PAREN, "Expect ')' after parameters");
-        END_PARSING_IF_ERROR();
     }
     end_parsing:
     if(parser.has_error) {

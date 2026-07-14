@@ -308,48 +308,9 @@ bool resolveStmt(ScopeResolver* resolver, Stmt*stmt){
         // Declaration
         case VAR_DECL:
             success = resolveExpr(resolver, stmt->body._var_decl->init_expr); TERMINATE_RESOLVER_IF_ERROR();
-            /*if(resolver->depth == 0){
-                type = SYM_GLOB;
-                slot = -1;
-            }
-            else{
-                type = SYM_LOC;
-                slot = resolver->slot++;
-            }
-            if(scopeLookUpSymbol(resolver->current, stmt->body._var_decl->name.start, stmt->body._var_decl->name.length) != NULL){
-                RESOLVER_ERROR("Variables with the same name cannot be re-declared in the same scope\n");
-                TERMINATE_RESOLVER_IF_ERROR();
-            }
-            symbol = newSymbol(type, stmt->body._var_decl->name.start, stmt->body._var_decl->name.length, resolver->depth, slot);
-            if(symbol == NULL){
-                RESOLVER_ERROR("cannot allocate a new symbol for declaration at line %d\n", stmt->body._var_decl->name.line);
-                TERMINATE_RESOLVER_IF_ERROR();
-            }
-            stmt->body._var_decl->symbol = symbol;
-            if(!scopeAddLocal(resolver->current, symbol)){
-                RESOLVER_ERROR("cannot add a new variable to the current scope\n");
-                TERMINATE_RESOLVER_IF_ERROR();
-            }*/
             break;
 
         case FN_DECL:{
-            /*if(resolver->depth == 0){
-                type = SYM_GLOB;
-                slot = -1;
-            } else {
-                type = SYM_LOC;
-                slot = resolver->slot++;
-            }
-
-            if(scopeLookUpSymbol(resolver->current, stmt->body._fn_decl->name.start, stmt->body._fn_decl->name.length) != NULL){
-                RESOLVER_ERROR("Cannot define functions with the same name\n");
-                TERMINATE_RESOLVER_IF_ERROR();
-            }
-
-            symbol = newSymbol(type, stmt->body._fn_decl->name.start, stmt->body._fn_decl->name.length, resolver->depth, slot);
-            stmt->body._fn_decl->symbol = symbol;
-            scopeAddLocal(resolver->current, symbol);*/
-
             int saved_slot = resolver->slot;
             FnInfo* fn_info = newFnInfo();
             stmt->body._fn_decl->info = fn_info;
@@ -464,6 +425,10 @@ bool resolveExpr(ScopeResolver* resolver, Expr* expr){
             success = resolveExpr(resolver, expr->body._call->callee); TERMINATE_RESOLVER_IF_ERROR(); 
             break;
         }
+        case INDEX_EXPR: 
+            resolveExpr(resolver, expr->body._index->index); TERMINATE_RESOLVER_IF_ERROR();
+            resolveExpr(resolver, expr->body._index->var); TERMINATE_RESOLVER_IF_ERROR();
+            break;
         case LITERAL_EXPR:
             return true;
     }

@@ -391,6 +391,11 @@ void compileExpr(Expr* expr){
             }
             emitBytes(2, OP_CALL, (uint8_t) expr->body._call->argc);
             break;
+        case INDEX_EXPR:
+            compileExpr(expr->body._index->var); TERMINATE_IF_ERROR();
+            compileExpr(expr->body._index->index); TERMINATE_IF_ERROR();
+            emitByte(OP_GET_IND);
+            break;
     }
 
     terminate_compilation:

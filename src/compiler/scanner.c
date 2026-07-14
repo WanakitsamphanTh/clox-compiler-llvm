@@ -39,6 +39,10 @@ Token scanToken(){
             token.type = TOKEN_LEFT_BRACE; break;
         case '}':
             token.type = TOKEN_RIGHT_BRACE; break;
+        case '[':
+            token.type = TOKEN_LEFT_BRACKET; break;
+        case ']':
+            token.type = TOKEN_RIGHT_BRACKET; break;
         case ';':
             token.type = TOKEN_SEMICOLON; break;
         case '.':

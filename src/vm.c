@@ -372,8 +372,40 @@ InterpretResult runVM(VM* vm){
                 vm->frame = &vm->call_frames[vm->frame_count++];
                 vm->frame->slots = vm->stack_top - argc;
                 if(!call(fn, vm)){
-                    return INTERPRET_ERROR;
+                    return INTERPRET_RUNTIME_ERROR;
                 }
+                break;
+            }
+            case OP_GET_IND:{
+                Value index = vmPop(vm);
+                Value array = vmPop(vm);
+                if(!isObjType(array, OBJ_ARRAY)){
+                    runtimeError(vm, "Cannot index-access a non-array type");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                ObjArray* arr = (ObjArray*)AS_OBJ(array);
+                int ind = AS_NUM(index);
+                if(ind > arr->len - 1){
+                    runtimeError(vm, "Index out of range");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                vmPush(vm, arr->elements[ind]);
+                break;
+            }
+            case OP_SET_IND:{
+                Value index = vmPop(vm);
+                Value array = vmPop(vm);
+                if(!isObjType(array, OBJ_ARRAY)){
+                    runtimeError(vm, "Cannot index-access a non-array type");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                ObjArray* arr = (ObjArray*)AS_OBJ(array);
+                int ind = AS_NUM(index);
+                if(ind > arr->len - 1){
+                    runtimeError(vm, "Index out of range");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                arr->elements[ind] = vmPeek(vm, 0);
                 break;
             }
 

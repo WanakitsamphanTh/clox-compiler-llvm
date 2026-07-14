@@ -18,6 +18,7 @@ typedef enum {
     ASSIGNMENT_EXPR,
     ARR_EXPR,
     CALL_EXPR,
+    INDEX_EXPR
 } ExprType;
 
 typedef struct {
@@ -56,6 +57,11 @@ typedef struct {
 } ArrExpr;
 
 typedef struct {
+    Expr* var;
+    Expr* index;
+} IndexExpr;
+
+typedef struct {
     Expr* callee;
     size_t argc;
     struct {
@@ -75,6 +81,7 @@ struct _expression {
         AssignmentExpr* _assign;
         ArrExpr* _arr;
         CallExpr* _call;
+        IndexExpr* _index;
     } body;
 };
 

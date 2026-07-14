@@ -4,8 +4,11 @@ print x;
 print "========Test len===========";
 print len(x);
 print "========Test pow===========";
-print "input x: ";
-x = scanNumber();
-print "input y: ";
-var y = scanNumber();
-print "x^y = " + pow(x,y);
+fun doSomething(){
+    print "input x: ";
+    var x = scanNumber();
+    print "input y: ";
+    var y = scanNumber();
+    print "x^y = " + pow(x,y);
+}
+doSomething();

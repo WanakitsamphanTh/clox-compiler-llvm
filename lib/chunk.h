@@ -53,6 +53,9 @@ typedef enum {
     OP_STORE_UVAL,
     OP_CLOSE_UVAL,
 
+    OP_SET_IND,
+    OP_GET_IND,
+
     OP_CLOSURE,
     OP_CALL,
 
