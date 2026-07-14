@@ -16,10 +16,12 @@ typedef struct _Obj {
     void (*destructor)(void*);
     ObjType type;
 
+    // for GC
+    size_t ref_count;
+
     // next
     struct _Obj* next;
 } Obj;
-
 
 typedef struct _Table Table;
 typedef struct {

@@ -15,7 +15,7 @@ This is my project in implementing a compiler and LLVM in C for Lox (from Crafti
     - the formal grammar for array is \
      $ array := \{ [expression [, expression]*]? \} $
     - array/string operation (to be implemented)
-        - [ ] get/set \
+        - [X] get/set \
             $ set := index = expression $ \
             $ get := index $ \
             $ index := [primary | call] ~ {``}[{"} expression{``}]{"}+  $ \
