@@ -11,7 +11,7 @@ struct _Obj_Vtable obj_vtable = {.destructor = NULL, .blacken = obj_blacken};
 struct _Obj_Vtable obj_array_vtable = {.destructor = &obj_array_destructor, .blacken = obj_array_blacken};
 struct _Obj_Vtable obj_str_vtable = {.destructor = NULL, .blacken = obj_blacken};
 
-Obj* AllocateObj(ObjHeap* heap, ObjType type, struct _Obj_Vtable* vtable, size_t size){
+Obj* allocateObj(ObjHeap* heap, ObjType type, struct _Obj_Vtable* vtable, size_t size){
     heapCheck(heap);
     Obj* obj = malloc(size);
     if(obj == NULL){
@@ -45,7 +45,7 @@ ObjString* makeObjString(ObjHeap* heap, const char* src, int length){
 }
 
 ObjString* newObjString(ObjHeap* heap, const char* src, size_t len, uint32_t hash){
-    ObjString* str = AllocateObj(heap, OBJ_STRING, &obj_str_vtable, sizeof(ObjString) + (len + 1));
+    ObjString* str = allocateObj(heap, OBJ_STRING, &obj_str_vtable, sizeof(ObjString) + (len + 1));
     str->len = len;
     memcpy(str->str, src, len);
     str->str[len] = '\0';
@@ -56,7 +56,7 @@ ObjString* newObjString(ObjHeap* heap, const char* src, size_t len, uint32_t has
 
 ObjString* concatObjString(ObjHeap* heap, const ObjString *s1, const ObjString *s2){
     size_t len = s1->len + s2->len;
-    ObjString* str = AllocateObj(heap, OBJ_STRING, &obj_str_vtable, sizeof(ObjString) + (len + 1));
+    ObjString* str = allocateObj(heap, OBJ_STRING, &obj_str_vtable, sizeof(ObjString) + (len + 1));
     str->len = len;
     strcpy(str->str, s1->str);
     strcpy(str->str + s1->len, s2->str);
@@ -86,7 +86,7 @@ void freeObj(Obj* obj){
 }
 
 ObjArray* makeObjArray(ObjHeap *heap, size_t len, Value* v_arr){
-    ObjArray* arr = AllocateObj(heap, OBJ_ARRAY, &obj_array_vtable, sizeof(ObjArray) + sizeof(Value) * len);
+    ObjArray* arr = allocateObj(heap, OBJ_ARRAY, &obj_array_vtable, sizeof(ObjArray) + sizeof(Value) * len);
     int i;
     if(v_arr != NULL)
         for(i = 0; i < len; i++)
@@ -96,7 +96,7 @@ ObjArray* makeObjArray(ObjHeap *heap, size_t len, Value* v_arr){
 }
 
 ObjArray* concatObjArray(ObjHeap* heap, const ObjArray* a, const ObjArray* b){
-    ObjArray* arr = AllocateObj(heap, OBJ_ARRAY, &obj_array_vtable, sizeof(ObjArray) + sizeof(Value) * (a->len + b->len));
+    ObjArray* arr = allocateObj(heap, OBJ_ARRAY, &obj_array_vtable, sizeof(ObjArray) + sizeof(Value) * (a->len + b->len));
     int i, j;
     for(i = 0; i < a->len; i++)
         arr->elements[i] = a->elements[i];

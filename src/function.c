@@ -16,7 +16,7 @@ struct _Obj_Vtable obj_fn_vtable = {.destructor = free_obj_fn, .blacken = blacke
 struct _Obj_Vtable obj_closure_vtable = {.destructor = NULL, .blacken = blacken_obj_closure};
 
 ObjCallable* newFunction(ObjHeap* heap, ObjString* name, int arity){
-    ObjFn* fn = AllocateObj(heap, OBJ_CALLABLE, &obj_fn_vtable, sizeof(ObjFn));
+    ObjFn* fn = allocateObj(heap, OBJ_CALLABLE, &obj_fn_vtable, sizeof(ObjFn));
     fn->invoke.name = name;
     fn->invoke.arity = arity;
     fn->invoke.type = FN;
@@ -24,7 +24,7 @@ ObjCallable* newFunction(ObjHeap* heap, ObjString* name, int arity){
     return fn;
 }
 ObjCallable* newNativeFunction(ObjHeap* heap, ObjString* name, int arity, NativeFn callee){
-    ObjNativeFn* fn = AllocateObj(heap, OBJ_CALLABLE, &obj_vtable, sizeof(ObjNativeFn));
+    ObjNativeFn* fn = allocateObj(heap, OBJ_CALLABLE, &obj_vtable, sizeof(ObjNativeFn));
     fn->fn = callee;
     fn->invoke.type = NAT_FN;
     fn->invoke.arity = arity;
@@ -64,7 +64,7 @@ bool call(ObjCallable *callable, VM *vm){
 }
 
 ObjCallable* newClosure(ObjHeap* heap, ObjFn* fn, size_t upvalue_count){
-    ObjClosure* closure = AllocateObj(heap, OBJ_CALLABLE, &obj_vtable, sizeof(ObjClosure) + sizeof(ObjUpValue*) * upvalue_count);
+    ObjClosure* closure = allocateObj(heap, OBJ_CALLABLE, &obj_vtable, sizeof(ObjClosure) + sizeof(ObjUpValue*) * upvalue_count);
     closure->invoke.arity = fn->invoke.arity;
     closure->invoke.name = fn->invoke.name;
     closure->invoke.type = CLOSURE;
@@ -74,7 +74,7 @@ ObjCallable* newClosure(ObjHeap* heap, ObjFn* fn, size_t upvalue_count){
 }
 
 ObjUpValue* newUpValue(ObjHeap* heap, Value* ref){
-    ObjUpValue *uval = AllocateObj(heap, OBJ_UPVALUE, &obj_vtable, sizeof(ObjUpValue));
+    ObjUpValue *uval = allocateObj(heap, OBJ_UPVALUE, &obj_vtable, sizeof(ObjUpValue));
     uval->ref = ref;
     return uval;
 }

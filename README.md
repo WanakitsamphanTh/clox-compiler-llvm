@@ -34,19 +34,15 @@ This is my project in implementing a compiler and LLVM in C for Lox (from Crafti
 - Runtime stack and constant pool is too small
 - Gotta refactor the name binding part
 - I should optimize the loop in `addConstant()` and `lookUpSymbol()` to reduce time complexity to O(N)
-- I'm thinking about the better way to implement array at runtime
+- I changed the way arrays are created 
 
-
-    **currently**
+    **before**
     - push all array elements on stack
     - use array instruction to collect
 
-    **optimization approach**
-    - allocate array and push on stack
-    - push i-th element on stack and set i-th elemnt (i = 0...n) (JVM and Python apprroach)
-    - or partition array, each has number of elements not exceeding the predefined limit, collect elements into subarrays, and concatenate all subarrays into a complete array (Problably Lua approach)
-
-- Maybe I'll add another data type that represents a single byte to my CLox, constants of which are a part of bytecode instead of living in the constant pool.
+    **now**
+    - use array instruction allocate a fixed-size blank array on stack
+    - partition elements into slots with predefined size, load and collect one slot each time
 - Maybe adding tuple and tuple unpacking
 - Also implementing serialization to make the bytecode portable
 - I should add constant folding in my compiler to reduce number of constants.

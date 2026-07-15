@@ -50,7 +50,7 @@ void freeObj(Obj*);
 void heapCheck(ObjHeap*);
 bool isObjType(Value, ObjType);
 
-Obj* AllocateObj(ObjHeap*, ObjType type, struct _Obj_Vtable*, size_t size);
+Obj* allocateObj(ObjHeap*, ObjType type, struct _Obj_Vtable*, size_t size);
 
 typedef struct _ObjString {    
     Obj obj;
