@@ -35,6 +35,7 @@ typedef enum {
 
     // Array
     OP_ARR,
+    OP_COLLECT,
 
     // control
     OP_JMP,

@@ -8,6 +8,7 @@ static int simpleInstruction(const char*, int);
 static int jumpInstruction(const char*, int, const Chunk*, int);
 static int constantInstruction(const char*, const Chunk*, int);
 static int arrayInstruction(const char*, const Chunk*, int);
+static int arrayInitInstruction(const char*, const Chunk*, int);
 static int callInstruction(const char*, const Chunk*, int);
 static int localInstruction(const char*, const Chunk*, int);
 static int closureInstruction(const char*, const Chunk*, int);
@@ -75,6 +76,8 @@ int disassembleInstruction(const Chunk* chunk, int offset){
             return simpleInstruction("OP_FALSE", offset);
         case OP_ARR:
             return arrayInstruction("OP_ARR", chunk, offset);
+        case OP_COLLECT:
+            return arrayInitInstruction("OP_COLLECT", chunk, offset);
            
         case OP_AND: 
             return simpleInstruction("OP_AND", offset);
@@ -191,9 +194,14 @@ int jumpInstruction(const char* instruction, int sgn, const Chunk* chunk, int of
     return offset + 3;
 }
 
- int arrayInstruction(const char* instruction, const Chunk* chunk, int offset){
+int arrayInstruction(const char* instruction, const Chunk* chunk, int offset){
     printf("%-16s %04d\n", instruction, chunk->code[offset + 1]);
     return offset + 2;
+}
+
+int arrayInitInstruction(const char* instruction, const Chunk* chunk, int offset){
+    printf("%-16s %04d %04d\n", instruction, chunk->code[offset + 1], chunk->code[offset + 2]);
+    return offset + 3;
 }
 
 static int callInstruction(const char* instruction, const Chunk* chunk, int offset){

@@ -88,8 +88,9 @@ void freeObj(Obj* obj){
 ObjArray* makeObjArray(ObjHeap *heap, size_t len, Value* v_arr){
     ObjArray* arr = AllocateObj(heap, OBJ_ARRAY, &obj_array_vtable, sizeof(ObjArray) + sizeof(Value) * len);
     int i;
-    for(i = 0; i < len; i++)
-        arr->elements[i] = v_arr[i];
+    if(v_arr != NULL)
+        for(i = 0; i < len; i++)
+            arr->elements[i] = v_arr[i];
     arr->len = len;
     return arr;
 }

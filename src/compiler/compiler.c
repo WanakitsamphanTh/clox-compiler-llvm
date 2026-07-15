@@ -361,12 +361,18 @@ void compileExpr(Expr* expr){
         }
         case ARR_EXPR:{
             int count = expr->body._arr->count;
-            int i;
-            for(i = 0; i < count; i++){
-                compileExpr(expr->body._arr->elements[count - i - 1]); //FILO
-                TERMINATE_IF_ERROR();
-            }
+            int slot_count = 0;
             emitBytes(2, OP_ARR, (uint8_t) count);
+            while(count > 0){
+                int slot_size = (count > ARRAY_STORE_SLOT_SIZE)? ARRAY_STORE_SLOT_SIZE : count;
+                for(int i = 0 ; i < slot_size; i++){
+                    compileExpr(expr->body._arr->elements[slot_count * ARRAY_STORE_SLOT_SIZE + i]);
+                    TERMINATE_IF_ERROR();
+                }
+                emitBytes(3, OP_COLLECT, (uint8_t) slot_count, (uint8_t) slot_size);
+                slot_count++;
+                count -= slot_size;
+            }
             break;
         }
         case CALL_EXPR:

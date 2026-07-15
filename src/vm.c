@@ -118,26 +118,29 @@ InterpretResult runVM(VM* vm){
             case OP_NIL: 
                 vmPush(vm, VALUE_NIL);
                 break;
-            case OP_ARR:{
+           case OP_ARR:{
                 uint8_t size = vmReadByte(vm);
-
-                Value* v_arr = malloc(sizeof(Value)*size);
-                uint8_t i;
-
-                // poping value for array
-                for(i = 0; i < size; i++)
-                    v_arr[i] = vmPeek(vm, i);
-                
-                Value array = VALUE_OBJ(makeObjArray(&vm->heap, size, v_arr));
-
-                for(i = 0; i < size; i++)
-                    vmPop(vm);
-
+                Value array = VALUE_OBJ(makeObjArray(&vm->heap, size, NULL));
                 vmPush(vm, array);
-
-                free(v_arr);
                 break;
-            }
+           }
+           case OP_COLLECT:{
+                uint8_t slot_count = vmReadByte(vm);
+                uint8_t slot_size = vmReadByte(vm);
+                ObjArray* array = AS_OBJ(vmPeek(vm, slot_size));
+
+                for(int i = 0; i < slot_size; i++){
+                    int index = slot_count * ARRAY_STORE_SLOT_SIZE + i;
+                    if(i >= array->len) {
+                        runtimeError(vm, "Cannot initialize the array (index out of bound)");
+                        return INTERPRET_RUNTIME_ERROR;
+                    }
+                    array->elements[index] = vmPeek(vm, slot_size - 1 - i);
+                }
+
+                for(int i = 0; i < slot_size; i++) vmPop(vm);
+                break;
+           }
 
             case OP_NEGATE:
                 if(vmPeek(vm, 0).type != NUMBER_VALUE){
@@ -571,13 +574,15 @@ void runtimeError(VM* vm, const char* fmt, ...){
         CallFrame* frame = vm->frame;
         while(1){
             if(frame == vm->call_frames) {
-                fprintf(stderr, "from script");
+                fprintf(stderr, "from script\n");
                 break;
             }
             fprintf(stderr, "from %s()\n", frame->fn->name->str);
             frame--;
         }
     }
+    if(vm->frame->fn->type != NAT_FN)
+        fprintf(stderr, "at instruction %p [offset %04d]", vm->frame->ip, vm->frame->ip - vm->frame->chunk->code - 1);
     resetFrameCall(vm);
     resetStack(vm);
 }
